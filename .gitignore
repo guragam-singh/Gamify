@@ -1,0 +1,28 @@
+# Secrets — these files contain plaintext API keys
+config.local.json
+opencode.jsonc
+
+# Unity generated / machine-local (never commit — Library alone is hundreds of MB)
+[Ll]ibrary/
+[Tt]emp/
+[Ll]ogs/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Generated IDE / solution files
+*.csproj
+*.sln
+*.slnx
+*.user
+*.userprefs
+.vscode/
+.idea/
+
+# OS cruft
+Thumbs.db
+desktop.ini
+.DS_Store

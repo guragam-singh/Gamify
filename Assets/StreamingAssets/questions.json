@@ -1,0 +1,39 @@
+{
+  "questions": [
+    {
+      "question": "Which data structure operates on a Last-In, First-Out (LIFO) principle?",
+      "options": ["Queue", "Stack", "Binary Heap", "Hash Map"],
+      "correctIndex": 1,
+      "explanation": "A Stack pushes elements on top and pops them off first, conforming to Last-In, First-Out (LIFO).",
+      "topic": "Data Structures"
+    },
+    {
+      "question": "What is the worst-case time complexity of standard QuickSort?",
+      "options": ["O(1)", "O(log n)", "O(n log n)", "O(n^2)"],
+      "correctIndex": 3,
+      "explanation": "When the pivot chosen is consistently the smallest or largest element, QuickSort degrades to O(n^2).",
+      "topic": "Algorithms"
+    },
+    {
+      "question": "Which HTTP status code indicates a successful request?",
+      "options": ["200 OK", "301 Moved", "404 Not Found", "500 Server Error"],
+      "correctIndex": 0,
+      "explanation": "HTTP 200 OK is the standard response for successful HTTP requests.",
+      "topic": "Networking"
+    },
+    {
+      "question": "Which C# keyword prevents a class from being inherited?",
+      "options": ["abstract", "sealed", "static", "readonly"],
+      "correctIndex": 1,
+      "explanation": "The 'sealed' modifier prevents other classes from deriving from or inheriting that class.",
+      "topic": "C# Programming"
+    },
+    {
+      "question": "In Unity, which method is called once per physics update frame?",
+      "options": ["Update()", "LateUpdate()", "FixedUpdate()", "Awake()"],
+      "correctIndex": 2,
+      "explanation": "FixedUpdate() runs at a consistent framerate tied to Unity's physics engine interval.",
+      "topic": "Unity Engine"
+    }
+  ]
+}
