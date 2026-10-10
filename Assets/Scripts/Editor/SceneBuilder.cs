@@ -24,21 +24,20 @@ namespace Gamify.Racing.Editor
             return mat;
         }
 
+        private static void ApplyGrayscaleMatToChildren(GameObject go, Material mat)
+        {
+            var renderers = go.GetComponentsInChildren<Renderer>(true);
+            foreach (var r in renderers)
+            {
+                r.sharedMaterial = mat;
+            }
+        }
+
         [MenuItem("Tools/Gamify/Build Racer Scene")]
         public static void BuildScene()
         {
             var activeScene = EditorSceneManager.GetActiveScene();
             Undo.RegisterFullObjectHierarchyUndo(activeScene.GetRootGameObjects().Length > 0 ? activeScene.GetRootGameObjects()[0] : null, "Build Racer Scene");
-
-            // Clean existing game objects except Main Camera and Light if already configured
-            var roots = activeScene.GetRootGameObjects();
-            foreach (var go in roots)
-            {
-                if (go.name == "Global Light 2D")
-                {
-                    Object.DestroyImmediate(go);
-                }
-            }
 
             // Setup Camera
             Camera cam = Camera.main;
@@ -49,10 +48,10 @@ namespace Gamify.Racing.Editor
                 camGo.tag = "MainCamera";
             }
             cam.orthographic = false;
-            cam.fieldOfView = 58f;
+            cam.fieldOfView = 56f;
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0.08f, 0.08f, 0.08f);
-            cam.transform.position = new Vector3(-1.5f, 3.5f, -6.8f);
+            cam.backgroundColor = new Color(0.06f, 0.06f, 0.06f);
+            cam.transform.position = new Vector3(-1.5f, 3.4f, -7.2f);
             cam.transform.rotation = Quaternion.Euler(14f, 0f, 0f);
 
             // Setup Directional Light
@@ -69,58 +68,76 @@ namespace Gamify.Racing.Editor
                 dirLight.type = LightType.Directional;
             }
             dirLight.color = Color.white;
-            dirLight.intensity = 1.1f;
-            dirLight.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+            dirLight.intensity = 1.15f;
+            dirLight.transform.rotation = Quaternion.Euler(48f, -28f, 0f);
 
             // Materials
             Material roadMat = CreateGrayscaleMat("RoadMat", new Color(0.12f, 0.12f, 0.12f));
-            Material shoulderMat = CreateGrayscaleMat("ShoulderMat", new Color(0.05f, 0.05f, 0.05f));
-            Material stripeMat = CreateGrayscaleMat("StripeMat", new Color(0.9f, 0.9f, 0.9f));
-            Material carBodyMat = CreateGrayscaleMat("CarBodyMat", new Color(0.25f, 0.25f, 0.25f));
-            Material carCockpitMat = CreateGrayscaleMat("CarCockpitMat", new Color(0.85f, 0.85f, 0.85f));
-            Material carWheelMat = CreateGrayscaleMat("CarWheelMat", new Color(0.04f, 0.04f, 0.04f));
+            Material shoulderMat = CreateGrayscaleMat("ShoulderMat", new Color(0.04f, 0.04f, 0.04f));
+            Material stripeMat = CreateGrayscaleMat("StripeMat", new Color(0.92f, 0.92f, 0.92f));
             Material headlightMat = CreateGrayscaleMat("HeadlightMat", Color.white);
-            Material frameMat = CreateGrayscaleMat("FrameMat", new Color(0.2f, 0.2f, 0.2f));
-            Material wallMat = CreateGrayscaleMat("WallMat", new Color(0.5f, 0.5f, 0.5f));
-            Material pillarMat = CreateGrayscaleMat("PillarMat", new Color(0.35f, 0.35f, 0.35f));
+            Material frameMat = CreateGrayscaleMat("FrameMat", new Color(0.18f, 0.18f, 0.18f));
+            Material wallMat = CreateGrayscaleMat("WallMat", new Color(0.48f, 0.48f, 0.48f));
 
-            // Clean old track / game objects if they exist
-            string[] cleanupNames = { "Track", "Car", "Checkpoints", "GameManager", "Canvas", "EventSystem" };
+            // Load Grayscale Environment Material
+            Material envGrayMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/BEDRILL/Track_Environment_Free/Materials/Environment_Free_Grayscale.mat");
+            if (envGrayMat == null)
+            {
+                envGrayMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/BEDRILL/Track_Environment_Free/Materials/Environment_Free_Material.mat");
+            }
+
+            // Prefabs from Asset Packs
+            GameObject carPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ARCADE - FREE Racing Car/Prefabs (With Colliders)/Free Racing Car Gray Variant.prefab");
+            GameObject blueCarPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ARCADE - FREE Racing Car/Prefabs (With Colliders)/Free Racing Car Blue Variant.prefab");
+            GameObject redCarPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ARCADE - FREE Racing Car/Prefabs (With Colliders)/Free Racing Car Red Variant.prefab");
+            GameObject purpleCarPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ARCADE - FREE Racing Car/Prefabs (With Colliders)/Free Racing Car Purple Variant.prefab");
+
+            GameObject archPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/BEDRILL/Track_Environment_Free/Prefabs/Arch_for_banner_free_obs.prefab");
+            GameObject finishArchPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/BEDRILL/Track_Environment_Free/Prefabs/Arch_banner_finish_free_obs.prefab");
+            GameObject barrierPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/BEDRILL/Track_Environment_Free/Prefabs/Barrier_free_obs.prefab");
+            GameObject polePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/BEDRILL/Track_Environment_Free/Prefabs/Pole_light_free_obs.prefab");
+            GameObject tribunePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/BEDRILL/Track_Environment_Free/Prefabs/Tribune_free_obs.prefab");
+            GameObject trafficLightPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/BEDRILL/Track_Environment_Free/Prefabs/Traffic_light_free_obs.prefab");
+            GameObject tirePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/BEDRILL/Track_Environment_Free/Prefabs/Tire_free_obs.prefab");
+            GameObject conePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/BEDRILL/Track_Environment_Free/Prefabs/Cone_free_obs.prefab");
+
+            // Clean old objects
+            string[] cleanupNames = { "Track", "Car", "Checkpoints", "GameManager", "Canvas", "EventSystem", "Obstacles", "BotCars" };
             foreach (var n in cleanupNames)
             {
                 var found = GameObject.Find(n);
                 if (found != null) Object.DestroyImmediate(found);
             }
 
-            // Build Track
+            // 1. Build Track & Scenery (Extended to 760 units for 120 spacing)
             GameObject trackRoot = new GameObject("Track");
 
-            // Main Road Surface (Length: 380, Width: 13)
+            // Asphalt Road (Width: 13, Length: 760, centered at Z = 355)
             GameObject road = GameObject.CreatePrimitive(PrimitiveType.Cube);
             road.name = "RoadSurface";
             road.transform.SetParent(trackRoot.transform);
-            road.transform.position = new Vector3(0f, -0.1f, 170f);
-            road.transform.localScale = new Vector3(13f, 0.2f, 400f);
+            road.transform.position = new Vector3(0f, -0.1f, 355f);
+            road.transform.localScale = new Vector3(13f, 0.2f, 760f);
             road.GetComponent<MeshRenderer>().material = roadMat;
 
-            // Left & Right Shoulders
+            // Shoulders
             GameObject leftShoulder = GameObject.CreatePrimitive(PrimitiveType.Cube);
             leftShoulder.name = "LeftShoulder";
             leftShoulder.transform.SetParent(trackRoot.transform);
-            leftShoulder.transform.position = new Vector3(-7f, 0.15f, 170f);
-            leftShoulder.transform.localScale = new Vector3(1f, 0.4f, 400f);
+            leftShoulder.transform.position = new Vector3(-7f, 0.12f, 355f);
+            leftShoulder.transform.localScale = new Vector3(1.2f, 0.35f, 760f);
             leftShoulder.GetComponent<MeshRenderer>().material = shoulderMat;
 
             GameObject rightShoulder = GameObject.CreatePrimitive(PrimitiveType.Cube);
             rightShoulder.name = "RightShoulder";
             rightShoulder.transform.SetParent(trackRoot.transform);
-            rightShoulder.transform.position = new Vector3(7f, 0.15f, 170f);
-            rightShoulder.transform.localScale = new Vector3(1f, 0.4f, 400f);
+            rightShoulder.transform.position = new Vector3(7f, 0.12f, 355f);
+            rightShoulder.transform.localScale = new Vector3(1.2f, 0.35f, 760f);
             rightShoulder.GetComponent<MeshRenderer>().material = shoulderMat;
 
-            // Lane Divider Dashes (-3, 0, 3)
+            // Lane Divider Dashes
             float[] dividerX = new float[] { -3f, 0f, 3f };
-            for (float z = -10f; z < 360f; z += 12f)
+            for (float z = -10f; z < 720f; z += 12f)
             {
                 foreach (float x in dividerX)
                 {
@@ -128,106 +145,161 @@ namespace Gamify.Racing.Editor
                     stripe.name = "Stripe";
                     stripe.transform.SetParent(trackRoot.transform);
                     stripe.transform.position = new Vector3(x, 0.02f, z);
-                    stripe.transform.localScale = new Vector3(0.2f, 0.05f, 5f);
+                    stripe.transform.localScale = new Vector3(0.2f, 0.05f, 5.5f);
                     stripe.GetComponent<MeshRenderer>().material = stripeMat;
                     Object.DestroyImmediate(stripe.GetComponent<Collider>());
                 }
             }
 
-            // Roadside Pillars for speed sense
-            for (float z = 0f; z < 360f; z += 18f)
+            // Roadside Barriers
+            if (barrierPrefab != null)
             {
-                // Left & Right pillars
-                GameObject pL = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                pL.name = "Pillar_L";
-                pL.transform.SetParent(trackRoot.transform);
-                pL.transform.position = new Vector3(-7.8f, 1.2f, z);
-                pL.transform.localScale = new Vector3(0.4f, 2.4f, 0.4f);
-                pL.GetComponent<MeshRenderer>().material = pillarMat;
+                for (float z = -15f; z < 725f; z += 3.2f)
+                {
+                    // Left Barrier
+                    GameObject bL = (GameObject)PrefabUtility.InstantiatePrefab(barrierPrefab);
+                    bL.transform.SetParent(trackRoot.transform);
+                    bL.transform.position = new Vector3(-7.2f, 0.1f, z);
+                    bL.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+                    bL.transform.localScale = new Vector3(1f, 0.85f, 1f);
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(bL, envGrayMat);
 
-                GameObject pR = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                pR.name = "Pillar_R";
-                pR.transform.SetParent(trackRoot.transform);
-                pR.transform.position = new Vector3(7.8f, 1.2f, z);
-                pR.transform.localScale = new Vector3(0.4f, 2.4f, 0.4f);
-                pR.GetComponent<MeshRenderer>().material = pillarMat;
+                    // Right Barrier
+                    GameObject bR = (GameObject)PrefabUtility.InstantiatePrefab(barrierPrefab);
+                    bR.transform.SetParent(trackRoot.transform);
+                    bR.transform.position = new Vector3(7.2f, 0.1f, z);
+                    bR.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+                    bR.transform.localScale = new Vector3(1f, 0.85f, 1f);
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(bR, envGrayMat);
+                }
             }
 
-            // Build Car
+            // Streetlight Poles
+            if (polePrefab != null)
+            {
+                for (float z = 8f; z < 710f; z += 24f)
+                {
+                    // Left pole
+                    GameObject pL = (GameObject)PrefabUtility.InstantiatePrefab(polePrefab);
+                    pL.transform.SetParent(trackRoot.transform);
+                    pL.transform.position = new Vector3(-8.2f, 0f, z);
+                    pL.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+                    pL.transform.localScale = Vector3.one * 0.8f;
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(pL, envGrayMat);
+
+                    // Right pole
+                    GameObject pR = (GameObject)PrefabUtility.InstantiatePrefab(polePrefab);
+                    pR.transform.SetParent(trackRoot.transform);
+                    pR.transform.position = new Vector3(8.2f, 0f, z + 12f);
+                    pR.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+                    pR.transform.localScale = Vector3.one * 0.8f;
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(pR, envGrayMat);
+                }
+            }
+
+            // Spectator Tribunes (distributed along the extended track)
+            if (tribunePrefab != null)
+            {
+                float[] tribuneZs = new float[] { 140f, 260f, 380f, 500f, 620f };
+                foreach (float tz in tribuneZs)
+                {
+                    GameObject tL = (GameObject)PrefabUtility.InstantiatePrefab(tribunePrefab);
+                    tL.transform.SetParent(trackRoot.transform);
+                    tL.transform.position = new Vector3(-13.5f, 0f, tz);
+                    tL.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+                    tL.transform.localScale = Vector3.one * 0.9f;
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(tL, envGrayMat);
+
+                    GameObject tR = (GameObject)PrefabUtility.InstantiatePrefab(tribunePrefab);
+                    tR.transform.SetParent(trackRoot.transform);
+                    tR.transform.position = new Vector3(13.5f, 0f, tz);
+                    tR.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+                    tR.transform.localScale = Vector3.one * 0.9f;
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(tR, envGrayMat);
+                }
+            }
+
+            // Finish Line Arch (at Z = 670)
+            if (finishArchPrefab != null)
+            {
+                GameObject finishArch = (GameObject)PrefabUtility.InstantiatePrefab(finishArchPrefab);
+                finishArch.name = "FinishLineArch";
+                finishArch.transform.SetParent(trackRoot.transform);
+                finishArch.transform.position = new Vector3(0f, 4.5f, 670f);
+                finishArch.transform.localScale = new Vector3(1.85f, 1.85f, 1.85f);
+                if (envGrayMat != null) ApplyGrayscaleMatToChildren(finishArch, envGrayMat);
+            }
+
+            // 2. Build Player Car
             GameObject carGo = new GameObject("Car");
-            carGo.transform.position = new Vector3(-1.5f, 0.3f, 0f);
+            carGo.transform.position = new Vector3(-1.5f, 0.25f, 0f);
+
+            // Rigidbody and trigger collider for responsive physics detection
+            var carRb = carGo.AddComponent<Rigidbody>();
+            carRb.isKinematic = true;
+            var carCol = carGo.AddComponent<BoxCollider>();
+            carCol.isTrigger = true;
+            carCol.size = new Vector3(2.2f, 1.4f, 4.4f);
+            carCol.center = new Vector3(0f, 0.7f, 0.5f);
+
             var carController = carGo.AddComponent<CarController>();
 
             GameObject carModel = new GameObject("Model");
             carModel.transform.SetParent(carGo.transform);
             carModel.transform.localPosition = Vector3.zero;
 
-            // Chassis
-            GameObject chassis = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            chassis.name = "Chassis";
-            chassis.transform.SetParent(carModel.transform);
-            chassis.transform.localPosition = new Vector3(0f, 0.15f, 0f);
-            chassis.transform.localScale = new Vector3(1.7f, 0.45f, 3.2f);
-            chassis.GetComponent<MeshRenderer>().material = carBodyMat;
-            Object.DestroyImmediate(chassis.GetComponent<Collider>());
+            Transform frontLeft = null;
+            Transform frontRight = null;
+            List<Transform> allWheels = new List<Transform>();
 
-            // Cockpit
-            GameObject cockpit = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cockpit.name = "Cockpit";
-            cockpit.transform.SetParent(carModel.transform);
-            cockpit.transform.localPosition = new Vector3(0f, 0.5f, -0.2f);
-            cockpit.transform.localScale = new Vector3(1.3f, 0.4f, 1.6f);
-            cockpit.GetComponent<MeshRenderer>().material = carCockpitMat;
-            Object.DestroyImmediate(cockpit.GetComponent<Collider>());
-
-            // Headlights
-            GameObject hlL = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            hlL.name = "Headlight_L";
-            hlL.transform.SetParent(carModel.transform);
-            hlL.transform.localPosition = new Vector3(-0.6f, 0.18f, 1.62f);
-            hlL.transform.localScale = new Vector3(0.3f, 0.2f, 0.1f);
-            hlL.GetComponent<MeshRenderer>().material = headlightMat;
-            Object.DestroyImmediate(hlL.GetComponent<Collider>());
-
-            GameObject hlR = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            hlR.name = "Headlight_R";
-            hlR.transform.SetParent(carModel.transform);
-            hlR.transform.localPosition = new Vector3(0.6f, 0.18f, 1.62f);
-            hlR.transform.localScale = new Vector3(0.3f, 0.2f, 0.1f);
-            hlR.GetComponent<MeshRenderer>().material = headlightMat;
-            Object.DestroyImmediate(hlR.GetComponent<Collider>());
-
-            // Wheels
-            Transform[] wheels = new Transform[4];
-            Vector3[] wheelPositions = new Vector3[]
+            if (carPrefab != null)
             {
-                new Vector3(-0.95f, 0f, 1.0f),
-                new Vector3(0.95f, 0f, 1.0f),
-                new Vector3(-0.95f, 0f, -1.0f),
-                new Vector3(0.95f, 0f, -1.0f)
-            };
-            for (int w = 0; w < 4; w++)
-            {
-                GameObject wheel = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                wheel.name = $"Wheel_{w}";
-                wheel.transform.SetParent(carModel.transform);
-                wheel.transform.localPosition = wheelPositions[w];
-                wheel.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-                wheel.transform.localScale = new Vector3(0.65f, 0.2f, 0.65f);
-                wheel.GetComponent<MeshRenderer>().material = carWheelMat;
-                Object.DestroyImmediate(wheel.GetComponent<Collider>());
-                wheels[w] = wheel.transform;
+                GameObject carInstance = (GameObject)PrefabUtility.InstantiatePrefab(carPrefab);
+                carInstance.name = "AFRC_CarModel";
+                carInstance.transform.SetParent(carModel.transform);
+                carInstance.transform.localPosition = new Vector3(0f, 0.1f, 0f);
+                carInstance.transform.localRotation = Quaternion.identity;
+                carInstance.transform.localScale = new Vector3(0.85f, 0.85f, 0.85f);
+
+                frontLeft = carInstance.transform.Find("Wheels/Meshes/FrontLeftWheel");
+                frontRight = carInstance.transform.Find("Wheels/Meshes/FrontRightWheel");
+                Transform rearLeft = carInstance.transform.Find("Wheels/Meshes/RearLeftWheel");
+                Transform rearRight = carInstance.transform.Find("Wheels/Meshes/RearRightWheel");
+
+                if (frontLeft != null) allWheels.Add(frontLeft);
+                if (frontRight != null) allWheels.Add(frontRight);
+                if (rearLeft != null) allWheels.Add(rearLeft);
+                if (rearRight != null) allWheels.Add(rearRight);
+
+                // Add Headlights
+                GameObject hl1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                hl1.name = "Headlight_L";
+                hl1.transform.SetParent(carInstance.transform);
+                hl1.transform.localPosition = new Vector3(-0.62f, 0.38f, 2.38f);
+                hl1.transform.localScale = new Vector3(0.28f, 0.18f, 0.1f);
+                hl1.GetComponent<MeshRenderer>().material = headlightMat;
+                Object.DestroyImmediate(hl1.GetComponent<Collider>());
+
+                GameObject hl2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                hl2.name = "Headlight_R";
+                hl2.transform.SetParent(carInstance.transform);
+                hl2.transform.localPosition = new Vector3(0.62f, 0.38f, 2.38f);
+                hl2.transform.localScale = new Vector3(0.28f, 0.18f, 0.1f);
+                hl2.GetComponent<MeshRenderer>().material = headlightMat;
+                Object.DestroyImmediate(hl2.GetComponent<Collider>());
             }
 
             carController.carModel = carModel.transform;
-            carController.wheels = wheels;
+            carController.wheels = allWheels.ToArray();
+            carController.frontLeftWheel = frontLeft;
+            carController.frontRightWheel = frontRight;
             carController.followCamera = cam;
 
-            // Build Checkpoints (5 checkpoints)
+            // 3. Build Checkpoints (5 checkpoints at 90, 210, 330, 450, 570 — 120 units spacing)
             GameObject cpRoot = new GameObject("Checkpoints");
             List<Checkpoint> checkpointList = new List<Checkpoint>();
 
-            float[] cpDistances = new float[] { 45f, 110f, 175f, 240f, 305f };
+            float[] cpDistances = new float[] { 90f, 210f, 330f, 450f, 570f };
             float[] laneXs = new float[] { -4.5f, -1.5f, 1.5f, 4.5f };
 
             for (int c = 0; c < cpDistances.Length; c++)
@@ -241,15 +313,71 @@ namespace Gamify.Racing.Editor
                 checkpointComp.checkpointIndex = c;
                 checkpointComp.doors = new DoorController[4];
 
-                // Overhead archway beam
-                GameObject archBeam = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                archBeam.name = "ArchBeam";
-                archBeam.transform.SetParent(cpGo.transform);
-                archBeam.transform.localPosition = new Vector3(0f, 4.3f, 0f);
-                archBeam.transform.localScale = new Vector3(13f, 0.5f, 0.8f);
-                archBeam.GetComponent<MeshRenderer>().material = frameMat;
+                // Overhead Archway
+                if (archPrefab != null)
+                {
+                    GameObject arch = (GameObject)PrefabUtility.InstantiatePrefab(archPrefab);
+                    arch.name = "OverheadArch";
+                    arch.transform.SetParent(cpGo.transform);
+                    arch.transform.localPosition = new Vector3(0f, 0f, 0f);
+                    arch.transform.localRotation = Quaternion.identity;
+                    arch.transform.localScale = new Vector3(0.92f, 1f, 1f);
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(arch, envGrayMat);
+                }
+                else
+                {
+                    GameObject archBeam = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    archBeam.name = "ArchBeam";
+                    archBeam.transform.SetParent(cpGo.transform);
+                    archBeam.transform.localPosition = new Vector3(0f, 4.5f, 0f);
+                    archBeam.transform.localScale = new Vector3(13.5f, 0.6f, 0.8f);
+                    archBeam.GetComponent<MeshRenderer>().material = frameMat;
+                }
 
-                // 4 Doors
+                // Traffic Light on Arch
+                if (trafficLightPrefab != null)
+                {
+                    GameObject tlight = (GameObject)PrefabUtility.InstantiatePrefab(trafficLightPrefab);
+                    tlight.name = "TrafficLight";
+                    tlight.transform.SetParent(cpGo.transform);
+                    tlight.transform.localPosition = new Vector3(0f, 5.2f, -0.4f);
+                    tlight.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                    tlight.transform.localScale = Vector3.one * 0.9f;
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(tlight, envGrayMat);
+                }
+
+                // Roadside Tire Stack & Cones near checkpoint
+                if (tirePrefab != null)
+                {
+                    GameObject tireL = (GameObject)PrefabUtility.InstantiatePrefab(tirePrefab);
+                    tireL.transform.SetParent(cpGo.transform);
+                    tireL.transform.localPosition = new Vector3(-6.2f, 0f, -8f);
+                    tireL.transform.localScale = Vector3.one * 0.85f;
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(tireL, envGrayMat);
+
+                    GameObject tireR = (GameObject)PrefabUtility.InstantiatePrefab(tirePrefab);
+                    tireR.transform.SetParent(cpGo.transform);
+                    tireR.transform.localPosition = new Vector3(6.2f, 0f, -8f);
+                    tireR.transform.localScale = Vector3.one * 0.85f;
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(tireR, envGrayMat);
+                }
+
+                if (conePrefab != null)
+                {
+                    GameObject coneL = (GameObject)PrefabUtility.InstantiatePrefab(conePrefab);
+                    coneL.transform.SetParent(cpGo.transform);
+                    coneL.transform.localPosition = new Vector3(-6.0f, 0f, -6f);
+                    coneL.transform.localScale = Vector3.one * 0.9f;
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(coneL, envGrayMat);
+
+                    GameObject coneR = (GameObject)PrefabUtility.InstantiatePrefab(conePrefab);
+                    coneR.transform.SetParent(cpGo.transform);
+                    coneR.transform.localPosition = new Vector3(6.0f, 0f, -6f);
+                    coneR.transform.localScale = Vector3.one * 0.9f;
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(coneR, envGrayMat);
+                }
+
+                // 4 Answer Doors
                 for (int d = 0; d < 4; d++)
                 {
                     float doorX = laneXs[d];
@@ -259,7 +387,7 @@ namespace Gamify.Racing.Editor
 
                     var doorCtrl = doorGo.AddComponent<DoorController>();
 
-                    // Door Archway Frame (Left pillar, Right pillar, Top header)
+                    // Door Archway Frame
                     GameObject frameRoot = new GameObject("Frame");
                     frameRoot.transform.SetParent(doorGo.transform);
                     frameRoot.transform.localPosition = Vector3.zero;
@@ -267,22 +395,22 @@ namespace Gamify.Racing.Editor
                     GameObject fLeft = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     fLeft.transform.SetParent(frameRoot.transform);
                     fLeft.transform.localPosition = new Vector3(-1.35f, 1.7f, 0f);
-                    fLeft.transform.localScale = new Vector3(0.25f, 3.4f, 0.6f);
+                    fLeft.transform.localScale = new Vector3(0.22f, 3.4f, 0.6f);
                     fLeft.GetComponent<MeshRenderer>().material = frameMat;
 
                     GameObject fRight = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     fRight.transform.SetParent(frameRoot.transform);
                     fRight.transform.localPosition = new Vector3(1.35f, 1.7f, 0f);
-                    fRight.transform.localScale = new Vector3(0.25f, 3.4f, 0.6f);
+                    fRight.transform.localScale = new Vector3(0.22f, 3.4f, 0.6f);
                     fRight.GetComponent<MeshRenderer>().material = frameMat;
 
                     GameObject fTop = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     fTop.transform.SetParent(frameRoot.transform);
                     fTop.transform.localPosition = new Vector3(0f, 3.4f, 0f);
-                    fTop.transform.localScale = new Vector3(2.9f, 0.3f, 0.6f);
+                    fTop.transform.localScale = new Vector3(2.9f, 0.28f, 0.6f);
                     fTop.GetComponent<MeshRenderer>().material = frameMat;
 
-                    // Solid Breakable Wall
+                    // Solid Breakable Wall Slab
                     GameObject wallSolid = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     wallSolid.name = "WallSolid";
                     wallSolid.transform.SetParent(doorGo.transform);
@@ -290,7 +418,7 @@ namespace Gamify.Racing.Editor
                     wallSolid.transform.localScale = new Vector3(2.45f, 3.0f, 0.35f);
                     wallSolid.GetComponent<MeshRenderer>().material = wallMat;
 
-                    // Indicator Arrow (above door)
+                    // Indicator Arrow
                     GameObject arrow = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     arrow.name = "IndicatorArrow";
                     arrow.transform.SetParent(doorGo.transform);
@@ -338,7 +466,178 @@ namespace Gamify.Racing.Editor
                 checkpointList.Add(checkpointComp);
             }
 
-            // Build UI Canvas
+            // 4. Build Obstacles (placed between checkpoints with always clear lanes)
+            GameObject obsRoot = new GameObject("Obstacles");
+            List<Obstacle> obstacleList = new List<Obstacle>();
+
+            // Helper struct for obstacle definition
+            var obstaclePlacements = new (float x, float z, ObstacleType type)[]
+            {
+                // Segment 1: Start (0) to CP1 (90)
+                (-1.5f, 32f, ObstacleType.Cone),
+                (1.5f, 52f, ObstacleType.TireStack),
+                (4.5f, 52f, ObstacleType.TireStack),
+                (-4.5f, 68f, ObstacleType.Cone),
+
+                // Segment 2: CP1 (90) to CP2 (210)
+                (4.5f, 125f, ObstacleType.Cone),
+                (-1.5f, 150f, ObstacleType.TireStack),
+                (1.5f, 150f, ObstacleType.TireStack),
+                (-4.5f, 175f, ObstacleType.Barrier),
+                (1.5f, 190f, ObstacleType.Cone),
+
+                // Segment 3: CP2 (210) to CP3 (330)
+                (-4.5f, 240f, ObstacleType.TireStack),
+                (-1.5f, 240f, ObstacleType.TireStack),
+                (1.5f, 265f, ObstacleType.Cone),
+                (4.5f, 285f, ObstacleType.Barrier),
+                (-1.5f, 305f, ObstacleType.TireStack),
+
+                // Segment 4: CP3 (330) to CP4 (450)
+                (-1.5f, 360f, ObstacleType.Cone),
+                (1.5f, 385f, ObstacleType.TireStack),
+                (4.5f, 385f, ObstacleType.TireStack),
+                (-4.5f, 408f, ObstacleType.Barrier),
+                (-1.5f, 425f, ObstacleType.Cone),
+                (1.5f, 425f, ObstacleType.Cone),
+
+                // Segment 5: CP4 (450) to CP5 (570)
+                (-4.5f, 485f, ObstacleType.TireStack),
+                (1.5f, 508f, ObstacleType.Cone),
+                (4.5f, 508f, ObstacleType.Cone),
+                (-1.5f, 528f, ObstacleType.Barrier),
+                (-4.5f, 548f, ObstacleType.Cone)
+            };
+
+            foreach (var op in obstaclePlacements)
+            {
+                GameObject prefabToUse = conePrefab;
+                Vector3 scale = Vector3.one;
+
+                if (op.type == ObstacleType.Cone)
+                {
+                    prefabToUse = conePrefab;
+                    scale = Vector3.one * 0.95f;
+                }
+                else if (op.type == ObstacleType.TireStack)
+                {
+                    prefabToUse = tirePrefab;
+                    scale = Vector3.one * 0.9f;
+                }
+                else if (op.type == ObstacleType.Barrier)
+                {
+                    prefabToUse = barrierPrefab;
+                    scale = new Vector3(0.9f, 0.85f, 0.9f);
+                }
+
+                if (prefabToUse != null)
+                {
+                    GameObject obsInstance = (GameObject)PrefabUtility.InstantiatePrefab(prefabToUse);
+                    obsInstance.name = $"Obstacle_{op.type}_{op.z:F0}_{op.x:F1}";
+                    obsInstance.transform.SetParent(obsRoot.transform);
+                    obsInstance.transform.position = new Vector3(op.x, 0f, op.z);
+                    obsInstance.transform.localScale = scale;
+                    if (envGrayMat != null) ApplyGrayscaleMatToChildren(obsInstance, envGrayMat);
+
+                    // Setup trigger collider
+                    var col = obsInstance.GetComponent<Collider>();
+                    if (col == null)
+                    {
+                        var box = obsInstance.AddComponent<BoxCollider>();
+                        box.size = op.type == ObstacleType.Cone ? new Vector3(1f, 1.2f, 1f) :
+                                   op.type == ObstacleType.TireStack ? new Vector3(1.5f, 1.2f, 1.5f) :
+                                   new Vector3(2.4f, 1f, 0.9f);
+                        box.center = new Vector3(0f, 0.5f, 0f);
+                        box.isTrigger = true;
+                    }
+                    else
+                    {
+                        col.isTrigger = true;
+                    }
+
+                    // Rigidbody for hit response
+                    var rb = obsInstance.GetComponent<Rigidbody>();
+                    if (rb == null) rb = obsInstance.AddComponent<Rigidbody>();
+                    rb.isKinematic = true;
+
+                    var obsComp = obsInstance.AddComponent<Obstacle>();
+                    obsComp.obstacleType = op.type;
+                    obsComp.speedMultiplierOnHit = op.type == ObstacleType.Cone ? 0.65f : 0.45f;
+                    obsComp.cameraShakeIntensity = op.type == ObstacleType.Cone ? 0.25f : 0.38f;
+                    obsComp.cameraShakeDuration = 0.3f;
+
+                    obstacleList.Add(obsComp);
+                }
+            }
+
+            // 5. Build AI Bot Carts (3 Bots on track)
+            GameObject botsRoot = new GameObject("BotCars");
+            List<BotCarController> botList = new List<BotCarController>();
+
+            var botConfigs = new (GameObject prefab, float x, float z, int lane, float speed, string name)[]
+            {
+                (blueCarPrefab, -4.5f, 28f, 0, 15f, "BotCar_Blue"),
+                (redCarPrefab, 1.5f, 55f, 2, 14f, "BotCar_Red"),
+                (purpleCarPrefab != null ? purpleCarPrefab : blueCarPrefab, 4.5f, 82f, 3, 16f, "BotCar_Purple")
+            };
+
+            foreach (var bc in botConfigs)
+            {
+                if (bc.prefab == null) continue;
+
+                GameObject botGo = new GameObject(bc.name);
+                botGo.transform.SetParent(botsRoot.transform);
+                botGo.transform.position = new Vector3(bc.x, 0.25f, bc.z);
+
+                var botCtrl = botGo.AddComponent<BotCarController>();
+                botCtrl.baseSpeed = bc.speed;
+                botCtrl.currentLaneIndex = bc.lane;
+                botCtrl.loopStartZ = 10f;
+                botCtrl.loopEndZ = 650f;
+
+                var bCol = botGo.AddComponent<BoxCollider>();
+                bCol.isTrigger = true;
+                bCol.size = new Vector3(2.2f, 1.4f, 4.4f);
+                bCol.center = new Vector3(0f, 0.7f, 0.5f);
+
+                var bRb = botGo.AddComponent<Rigidbody>();
+                bRb.isKinematic = true;
+
+                GameObject bModel = new GameObject("Model");
+                bModel.transform.SetParent(botGo.transform);
+                bModel.transform.localPosition = Vector3.zero;
+
+                GameObject bInst = (GameObject)PrefabUtility.InstantiatePrefab(bc.prefab);
+                bInst.name = "MeshModel";
+                bInst.transform.SetParent(bModel.transform);
+                bInst.transform.localPosition = new Vector3(0f, 0.1f, 0f);
+                bInst.transform.localRotation = Quaternion.identity;
+                bInst.transform.localScale = new Vector3(0.85f, 0.85f, 0.85f);
+                if (envGrayMat != null) ApplyGrayscaleMatToChildren(bInst, envGrayMat);
+
+                // Disable internal colliders to avoid collision anomalies
+                foreach (var c in bInst.GetComponentsInChildren<Collider>()) c.enabled = false;
+
+                Transform bFl = bInst.transform.Find("Wheels/Meshes/FrontLeftWheel");
+                Transform bFr = bInst.transform.Find("Wheels/Meshes/FrontRightWheel");
+                Transform bRl = bInst.transform.Find("Wheels/Meshes/RearLeftWheel");
+                Transform bRr = bInst.transform.Find("Wheels/Meshes/RearRightWheel");
+
+                List<Transform> bWheels = new List<Transform>();
+                if (bFl != null) bWheels.Add(bFl);
+                if (bFr != null) bWheels.Add(bFr);
+                if (bRl != null) bWheels.Add(bRl);
+                if (bRr != null) bWheels.Add(bRr);
+
+                botCtrl.carModel = bModel.transform;
+                botCtrl.wheels = bWheels.ToArray();
+                botCtrl.frontLeftWheel = bFl;
+                botCtrl.frontRightWheel = bFr;
+
+                botList.Add(botCtrl);
+            }
+
+            // 6. Build UI Canvas
             GameObject canvasGo = new GameObject("Canvas");
             Canvas canvas = canvasGo.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -508,7 +807,7 @@ namespace Gamify.Racing.Editor
             bRect.anchorMax = new Vector2(0.5f, 0f);
             bRect.pivot = new Vector2(0.5f, 0f);
             bRect.anchoredPosition = new Vector2(0f, 25f);
-            bRect.sizeDelta = new Vector2(1100f, 85f);
+            bRect.sizeDelta = new Vector2(1200f, 85f);
 
             // Preview Aim
             GameObject aimGo = new GameObject("AimText");
@@ -529,89 +828,87 @@ namespace Gamify.Racing.Editor
             GameObject hintGo = new GameObject("HintText");
             hintGo.transform.SetParent(bottomBar.transform, false);
             var hintTmp = hintGo.AddComponent<TextMeshProUGUI>();
-            hintTmp.text = "[ Q / E ] Cycle Doors    |    [ SPACE ] Confirm & Ram Door";
+            hintTmp.text = "[ W / S ] Gas / Brake   [ A / D ] Steer   |   [ Q / E ] Pick Door   [ SPACE ] Ram Wall";
             hintTmp.fontSize = 18f;
             hintTmp.alignment = TextAlignmentOptions.Center;
-            hintTmp.color = new Color(0.7f, 0.7f, 0.7f);
+            hintTmp.color = new Color(0.85f, 0.85f, 0.85f);
             var hintRect = hintGo.GetComponent<RectTransform>();
             hintRect.anchorMin = new Vector2(0f, 0f);
             hintRect.anchorMax = new Vector2(1f, 0.5f);
             hintRect.offsetMin = new Vector2(10f, 5f);
             hintRect.offsetMax = new Vector2(-10f, 0f);
-            gameUI.controlsHintText = hintTmp;
 
-            // Explanation Modal (Wrong Answer)
-            GameObject expModal = new GameObject("ExplanationModal");
-            expModal.transform.SetParent(canvasGo.transform, false);
-            var expBg = expModal.AddComponent<Image>();
-            expBg.color = new Color(0f, 0f, 0f, 0.88f);
-            var expRect = expModal.GetComponent<RectTransform>();
-            expRect.anchorMin = Vector2.zero;
-            expRect.anchorMax = Vector2.one;
-            expRect.sizeDelta = Vector2.zero;
+            // Modal: Explanation (When wrong answer)
+            GameObject explModal = new GameObject("ExplanationModal");
+            explModal.transform.SetParent(canvasGo.transform, false);
+            var emImg = explModal.AddComponent<Image>();
+            emImg.color = new Color(0f, 0f, 0f, 0.85f);
+            var emRect = explModal.GetComponent<RectTransform>();
+            emRect.anchorMin = Vector2.zero;
+            emRect.anchorMax = Vector2.one;
+            emRect.sizeDelta = Vector2.zero;
 
-            GameObject expBox = new GameObject("Box");
-            expBox.transform.SetParent(expModal.transform, false);
-            var expBoxImg = expBox.AddComponent<Image>();
-            expBoxImg.color = new Color(0.14f, 0.14f, 0.14f, 1f);
-            var expBoxRect = expBox.GetComponent<RectTransform>();
-            expBoxRect.anchorMin = new Vector2(0.5f, 0.5f);
-            expBoxRect.anchorMax = new Vector2(0.5f, 0.5f);
-            expBoxRect.sizeDelta = new Vector2(900f, 400f);
+            GameObject emBox = new GameObject("Box");
+            emBox.transform.SetParent(explModal.transform, false);
+            var emBoxImg = emBox.AddComponent<Image>();
+            emBoxImg.color = new Color(0.12f, 0.12f, 0.12f, 0.98f);
+            var emBoxRect = emBox.GetComponent<RectTransform>();
+            emBoxRect.anchorMin = new Vector2(0.5f, 0.5f);
+            emBoxRect.anchorMax = new Vector2(0.5f, 0.5f);
+            emBoxRect.anchoredPosition = Vector2.zero;
+            emBoxRect.sizeDelta = new Vector2(850f, 320f);
 
-            GameObject expTitle = new GameObject("Title");
-            expTitle.transform.SetParent(expBox.transform, false);
-            var expTitleTmp = expTitle.AddComponent<TextMeshProUGUI>();
-            expTitleTmp.text = "CRASH! WRONG DOOR";
-            expTitleTmp.fontSize = 36f;
-            expTitleTmp.alignment = TextAlignmentOptions.Center;
-            expTitleTmp.color = Color.white;
-            var expTitleRect = expTitle.GetComponent<RectTransform>();
-            expTitleRect.anchorMin = new Vector2(0f, 1f);
-            expTitleRect.anchorMax = new Vector2(1f, 1f);
-            expTitleRect.pivot = new Vector2(0.5f, 1f);
-            expTitleRect.anchoredPosition = new Vector2(0f, -30f);
-            expTitleRect.sizeDelta = new Vector2(800f, 50f);
-            gameUI.explanationTitleText = expTitleTmp;
+            GameObject emTitle = new GameObject("Title");
+            emTitle.transform.SetParent(emBox.transform, false);
+            var emTitleTmp = emTitle.AddComponent<TextMeshProUGUI>();
+            emTitleTmp.text = "✖ INCORRECT - TRY AGAIN";
+            emTitleTmp.fontSize = 32f;
+            emTitleTmp.alignment = TextAlignmentOptions.Center;
+            emTitleTmp.color = Color.white;
+            var emTitleRect = emTitle.GetComponent<RectTransform>();
+            emTitleRect.anchorMin = new Vector2(0f, 1f);
+            emTitleRect.anchorMax = new Vector2(1f, 1f);
+            emTitleRect.pivot = new Vector2(0.5f, 1f);
+            emTitleRect.anchoredPosition = new Vector2(0f, -25f);
+            emTitleRect.sizeDelta = new Vector2(800f, 45f);
 
-            GameObject expBody = new GameObject("Body");
-            expBody.transform.SetParent(expBox.transform, false);
-            var expBodyTmp = expBody.AddComponent<TextMeshProUGUI>();
-            expBodyTmp.text = "Explanation of why this answer is wrong...";
-            expBodyTmp.fontSize = 24f;
-            expBodyTmp.enableWordWrapping = true;
-            expBodyTmp.alignment = TextAlignmentOptions.Center;
-            expBodyTmp.color = new Color(0.85f, 0.85f, 0.85f);
-            var expBodyRect = expBody.GetComponent<RectTransform>();
-            expBodyRect.anchorMin = new Vector2(0f, 0f);
-            expBodyRect.anchorMax = new Vector2(1f, 1f);
-            expBodyRect.offsetMin = new Vector2(40f, 100f);
-            expBodyRect.offsetMax = new Vector2(-40f, -90f);
-            gameUI.explanationBodyText = expBodyTmp;
+            GameObject emText = new GameObject("Text");
+            emText.transform.SetParent(emBox.transform, false);
+            var emTextTmp = emText.AddComponent<TextMeshProUGUI>();
+            emTextTmp.text = "Explanation text goes here...";
+            emTextTmp.fontSize = 24f;
+            emTextTmp.alignment = TextAlignmentOptions.Center;
+            emTextTmp.enableWordWrapping = true;
+            emTextTmp.color = new Color(0.85f, 0.85f, 0.85f);
+            var emTextRect = emText.GetComponent<RectTransform>();
+            emTextRect.anchorMin = new Vector2(0f, 0f);
+            emTextRect.anchorMax = new Vector2(1f, 1f);
+            emTextRect.offsetMin = new Vector2(40f, 70f);
+            emTextRect.offsetMax = new Vector2(-40f, -80f);
+            gameUI.explanationBodyText = emTextTmp;
 
-            GameObject expPrompt = new GameObject("Prompt");
-            expPrompt.transform.SetParent(expBox.transform, false);
-            var expPromptTmp = expPrompt.AddComponent<TextMeshProUGUI>();
-            expPromptTmp.text = "PRESS [ SPACE ] TO RETRY QUESTION";
-            expPromptTmp.fontSize = 22f;
-            expPromptTmp.alignment = TextAlignmentOptions.Center;
-            expPromptTmp.color = Color.white;
-            var expPromptRect = expPrompt.GetComponent<RectTransform>();
-            expPromptRect.anchorMin = new Vector2(0f, 0f);
-            expPromptRect.anchorMax = new Vector2(1f, 0f);
-            expPromptRect.pivot = new Vector2(0.5f, 0f);
-            expPromptRect.anchoredPosition = new Vector2(0f, 30f);
-            expPromptRect.sizeDelta = new Vector2(800f, 40f);
-            gameUI.explanationPromptText = expPromptTmp;
+            GameObject emPrompt = new GameObject("Prompt");
+            emPrompt.transform.SetParent(emBox.transform, false);
+            var emPromptTmp = emPrompt.AddComponent<TextMeshProUGUI>();
+            emPromptTmp.text = "PRESS [ SPACE ] TO RETRY";
+            emPromptTmp.fontSize = 20f;
+            emPromptTmp.alignment = TextAlignmentOptions.Center;
+            emPromptTmp.color = Color.white;
+            var emPromptRect = emPrompt.GetComponent<RectTransform>();
+            emPromptRect.anchorMin = new Vector2(0f, 0f);
+            emPromptRect.anchorMax = new Vector2(1f, 0f);
+            emPromptRect.pivot = new Vector2(0.5f, 0f);
+            emPromptRect.anchoredPosition = new Vector2(0f, 25f);
+            emPromptRect.sizeDelta = new Vector2(800f, 35f);
 
-            expModal.SetActive(false);
-            gameUI.explanationPanel = expModal;
+            explModal.SetActive(false);
+            gameUI.explanationPanel = explModal;
 
-            // Results Modal (Victory / Game Over)
+            // Modal: Results / Game Over / Victory
             GameObject resModal = new GameObject("ResultsModal");
             resModal.transform.SetParent(canvasGo.transform, false);
-            var resBg = resModal.AddComponent<Image>();
-            resBg.color = new Color(0f, 0f, 0f, 0.92f);
+            var resImg = resModal.AddComponent<Image>();
+            resImg.color = new Color(0f, 0f, 0f, 0.90f);
             var resRect = resModal.GetComponent<RectTransform>();
             resRect.anchorMin = Vector2.zero;
             resRect.anchorMax = Vector2.one;
@@ -620,11 +917,12 @@ namespace Gamify.Racing.Editor
             GameObject resBox = new GameObject("Box");
             resBox.transform.SetParent(resModal.transform, false);
             var resBoxImg = resBox.AddComponent<Image>();
-            resBoxImg.color = new Color(0.12f, 0.12f, 0.12f, 1f);
+            resBoxImg.color = new Color(0.12f, 0.12f, 0.12f, 0.98f);
             var resBoxRect = resBox.GetComponent<RectTransform>();
             resBoxRect.anchorMin = new Vector2(0.5f, 0.5f);
             resBoxRect.anchorMax = new Vector2(0.5f, 0.5f);
-            resBoxRect.sizeDelta = new Vector2(920f, 520f);
+            resBoxRect.anchoredPosition = Vector2.zero;
+            resBoxRect.sizeDelta = new Vector2(850f, 380f);
 
             GameObject resTitle = new GameObject("Title");
             resTitle.transform.SetParent(resBox.transform, false);
@@ -701,7 +999,7 @@ namespace Gamify.Racing.Editor
             resModal.SetActive(false);
             gameUI.resultsPanel = resModal;
 
-            // GameManager Root
+            // 7. GameManager Root
             GameObject gmGo = new GameObject("GameManager");
             var gm = gmGo.AddComponent<GameManager>();
             var qm = gmGo.AddComponent<QuestionManager>();
@@ -713,11 +1011,14 @@ namespace Gamify.Racing.Editor
             gm.gameAudio = audio;
             gm.checkpoints = checkpointList;
             gm.checkpointsContainer = cpRoot.transform;
+            gm.obstacles = obstacleList;
+            gm.botCars = botList;
+            gm.checkpointSpacing = 120f;
 
             EditorSceneManager.MarkSceneDirty(activeScene);
             EditorSceneManager.SaveScene(activeScene);
 
-            Debug.Log("[Gamify] Grayscale 2.5D Racer Scene successfully generated and saved!");
+            Debug.Log("[Gamify] Grayscale 2.5D Racer Scene successfully generated with WASD Controls, 120 Spacing, Obstacles, and AI Bot Carts!");
         }
     }
 }

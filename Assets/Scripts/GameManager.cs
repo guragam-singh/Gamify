@@ -26,8 +26,12 @@ namespace Gamify.Racing
 
         [Header("Track & Checkpoints")]
         public List<Checkpoint> checkpoints = new List<Checkpoint>();
-        public float checkpointSpacing = 65f;
+        public float checkpointSpacing = 120f;
         public Transform checkpointsContainer;
+
+        [Header("Obstacles & Bots")]
+        public List<Obstacle> obstacles = new List<Obstacle>();
+        public List<BotCarController> botCars = new List<BotCarController>();
 
         [Header("Gameplay Rules")]
         public float questionTimeLimit = 20f;
@@ -106,14 +110,14 @@ namespace Gamify.Racing
             if (UnityEngine.InputSystem.Keyboard.current != null)
             {
                 var kb = UnityEngine.InputSystem.Keyboard.current;
-                if (kb.qKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame || kb.leftArrowKey.wasPressedThisFrame) qPressed = true;
-                if (kb.eKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame || kb.rightArrowKey.wasPressedThisFrame) ePressed = true;
+                if (kb.qKey.wasPressedThisFrame) qPressed = true;
+                if (kb.eKey.wasPressedThisFrame) ePressed = true;
                 if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame) spacePressed = true;
             }
 #endif
 #if ENABLE_LEGACY_INPUT_MANAGER
-            if (Input.GetKeyDown(KeyCode.Q) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) qPressed = true;
-            if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) ePressed = true;
+            if (Input.GetKeyDown(KeyCode.Q)) qPressed = true;
+            if (Input.GetKeyDown(KeyCode.E)) ePressed = true;
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return)) spacePressed = true;
 #endif
 
@@ -362,6 +366,7 @@ namespace Gamify.Racing
             _timeRemaining = questionTimeLimit;
             _isTimerRunning = true;
 
+            selectedDoorIndex = carController.currentLaneIndex;
             cp.HighlightDoor(selectedDoorIndex);
             carController.SetSelectedLane(selectedDoorIndex);
             UpdateSelectionPreview();
@@ -449,6 +454,18 @@ namespace Gamify.Racing
             foreach (var cp in checkpoints)
             {
                 if (cp != null) cp.ResetAllDoors();
+            }
+
+            // Reset all obstacles
+            foreach (var obs in obstacles)
+            {
+                if (obs != null) obs.ResetObstacle();
+            }
+
+            // Reset all bot cars
+            foreach (var bot in botCars)
+            {
+                if (bot != null) bot.ResetBot();
             }
 
             StartGame();
