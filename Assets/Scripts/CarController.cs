@@ -21,6 +21,20 @@ namespace Gamify.Racing
         public float ramSpeed = 24f;
         public float laneChangeSpeed = 9f;
 
+        [Header("Racing Input (checkpoint sequences retain control)")]
+        public bool enableDrivingInput = true;
+        public float acceleration = 18f;
+        public float braking = 32f;
+        public float reverseSpeed = 6f;
+        public float boostedCruiseSpeed = 22f;
+        public RaceDirector raceDirector;
+        public float CurrentSpeed => _currentSpeed;
+        private float _segmentStartZ;
+        private float _steeringRepeat;
+        private float _bodyPitch;
+        public float drivingSteeringResponse = 12f;
+        public float steeringRepeatSeconds = 0.28f;
+
         [Header("Lane Settings")]
         public float[] laneXPositions = new float[] { -4.5f, -1.5f, 1.5f, 4.5f };
         public int currentLaneIndex = 1;
@@ -66,6 +80,7 @@ namespace Gamify.Racing
 
         public void DriveToCheckpoint(float stopZ)
         {
+            _segmentStartZ = transform.position.z;
             _targetZ = stopZ;
             State = CarState.Cruising;
         }
@@ -130,17 +145,26 @@ namespace Gamify.Racing
 
         private void UpdateMovement()
         {
+            bool accelerate, brake;
+            ReadDrivingInput(out accelerate, out brake);
             // Lane interpolation
             float targetX = laneXPositions[currentLaneIndex];
             Vector3 currentPos = transform.position;
-            currentPos.x = Mathf.Lerp(currentPos.x, targetX, laneChangeSpeed * Time.deltaTime);
+            float steering = State == CarState.Cruising ? drivingSteeringResponse : laneChangeSpeed;
+            float blend = State == CarState.Cruising ? 1f - Mathf.Exp(-steering * Time.deltaTime) : laneChangeSpeed * Time.deltaTime;
+            currentPos.x = Mathf.Lerp(currentPos.x, targetX, blend);
 
             if (State == CarState.Cruising)
             {
                 float dist = _targetZ - currentPos.z;
                 if (dist > 12f)
                 {
-                    _currentSpeed = Mathf.MoveTowards(_currentSpeed, cruiseSpeed, 12f * Time.deltaTime);
+                    // No keys preserves the original automatic cruise. W adds throttle;
+                    // S brakes and then reverses within this racing segment only.
+                    float desiredSpeed = brake ? -reverseSpeed : (accelerate ? boostedCruiseSpeed : cruiseSpeed);
+                    float rate = brake ? braking : (accelerate ? acceleration : 12f);
+                    _currentSpeed = Mathf.MoveTowards(_currentSpeed, desiredSpeed, rate * Time.deltaTime);
+                    _bodyPitch = Mathf.Lerp(_bodyPitch, brake ? 2f : accelerate ? -1.5f : 0f, 8f * Time.deltaTime);
                 }
                 else if (dist > 0.1f)
                 {
@@ -156,6 +180,13 @@ namespace Gamify.Racing
                 }
 
                 currentPos.z += _currentSpeed * Time.deltaTime;
+                currentPos.z = Mathf.Max(_segmentStartZ, currentPos.z);
+                if (raceDirector != null)
+                {
+                    Vector3 safe = raceDirector.ConstrainPlayerMotion(transform.position, currentPos);
+                    if (!Mathf.Approximately(safe.z, currentPos.z)) _currentSpeed = 0f;
+                    currentPos = safe;
+                }
             }
             else if (State == CarState.WaitingAtCheckpoint)
             {
@@ -163,6 +194,38 @@ namespace Gamify.Racing
             }
 
             transform.position = currentPos;
+        }
+
+        private void ReadDrivingInput(out bool accelerate, out bool brake)
+        {
+            accelerate = false;
+            brake = false;
+            if (!enableDrivingInput || State != CarState.Cruising ||
+                (GameManager.Instance != null && GameManager.Instance.CurrentState != GameState.DrivingToCheckpoint)) return;
+            bool left = false, right = false;
+#if ENABLE_INPUT_SYSTEM
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null)
+            {
+                accelerate = kb.wKey.isPressed;
+                brake = kb.sKey.isPressed;
+                left = kb.aKey.isPressed || kb.leftArrowKey.isPressed;
+                right = kb.dKey.isPressed || kb.rightArrowKey.isPressed;
+            }
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            accelerate |= Input.GetKey(KeyCode.W);
+            brake |= Input.GetKey(KeyCode.S);
+            left |= Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow);
+            right |= Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow);
+#endif
+            _steeringRepeat -= Time.deltaTime;
+            if (left == right) { _steeringRepeat = 0f; return; }
+            if (_steeringRepeat <= 0f)
+            {
+                SetSelectedLane(Mathf.Clamp(currentLaneIndex + (right ? 1 : -1), 0, laneXPositions.Length - 1));
+                _steeringRepeat = steeringRepeatSeconds;
+            }
         }
 
         private void UpdateCamera()
@@ -191,11 +254,11 @@ namespace Gamify.Racing
             // Subtle engine vibration when idling
             float vibe = (State == CarState.WaitingAtCheckpoint) ? Mathf.Sin(Time.time * 25f) * 0.02f : 0f;
 
-            carModel.localRotation = Quaternion.Euler(0f, 0f, rollAngle);
+            carModel.localRotation = Quaternion.Euler(State == CarState.Cruising ? _bodyPitch : 0f, 0f, rollAngle);
             carModel.localPosition = new Vector3(0f, vibe, 0f);
 
             // Spin wheels
-            if (wheels != null && _currentSpeed > 0.1f)
+            if (wheels != null && Mathf.Abs(_currentSpeed) > 0.1f)
             {
                 float spinDelta = (_currentSpeed / 0.4f) * 360f * Time.deltaTime;
                 foreach (var w in wheels)
@@ -234,6 +297,8 @@ namespace Gamify.Racing
             transform.position = position;
             _currentSpeed = 0f;
             State = CarState.Idle;
+            _bodyPitch = 0f;
+            _steeringRepeat = 0f;
 
             if (followCamera != null)
             {
@@ -244,5 +309,8 @@ namespace Gamify.Racing
                 );
             }
         }
+
+        public void ApplyCollisionSlowdown() { _currentSpeed *= 0.35f; }
+        public void StopRacing() { _currentSpeed = 0f; State = CarState.Idle; }
     }
 }

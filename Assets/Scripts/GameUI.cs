@@ -38,36 +38,93 @@ namespace Gamify.Racing
 
         [Header("Feedback Flash")]
         public Image screenFlashImage;
+        public TextMeshProUGUI speedText;
+        public TextMeshProUGUI raceStatusText;
+        public Image courseProgressFill;
+        private float _collisionNoticeUntil;
+
+        private void LateUpdate()
+        {
+            var gm = GameManager.Instance;
+            if (gm == null || gm.carController == null) return;
+
+            if (speedText != null)
+            {
+                speedText.text = Mathf.RoundToInt(Mathf.Abs(gm.carController.CurrentSpeed) * 3.6f) + " <size=60%>km/h</size>";
+            }
+
+            if (raceStatusText != null)
+            {
+                string codePrefix = (gm.questionManager != null && !string.IsNullOrEmpty(gm.questionManager.QuizCode))
+                    ? $"[CODE: {gm.questionManager.QuizCode}] "
+                    : "";
+
+                if (Time.time < _collisionNoticeUntil)
+                {
+                    raceStatusText.text = "BUMP! -1 LIFE -- KEEP GOING";
+                }
+                else if (gm.CurrentState == GameState.WaitingForAnswer)
+                {
+                    raceStatusText.text = $"{codePrefix}CHOOSE A GATE -- SPACE TO RAM DOOR";
+                }
+                else if (gm.CurrentState == GameState.ShowingExplanation)
+                {
+                    raceStatusText.text = "YOU CAN TRY AGAIN";
+                }
+                else
+                {
+                    raceStatusText.text = $"{codePrefix}LET'S RACE! W TO ACCELERATE";
+                }
+            }
+
+            if (courseProgressFill != null && gm.questionManager.Questions.Count > 0 && gm.checkpoints.Count >= gm.questionManager.Questions.Count)
+            {
+                courseProgressFill.fillAmount = Mathf.Clamp01(gm.carController.transform.position.z / gm.checkpoints[gm.questionManager.Questions.Count - 1].CheckpointZ);
+            }
+
+            if (gm.gameAudio != null)
+            {
+                gm.gameAudio.SetEnginePitch(Mathf.Lerp(0.75f, 1.7f, Mathf.Abs(gm.carController.CurrentSpeed) / gm.carController.boostedCruiseSpeed));
+            }
+        }
+
+        public void ShowCollisionFeedback()
+        {
+            _collisionNoticeUntil = Time.time + 1.8f;
+            FlashScreen(new Color(1f, 0.32f, 0.08f, 0.24f), 0.3f);
+        }
 
         public void SetHudVisible(bool visible)
         {
             if (hudRoot != null) hudRoot.SetActive(visible);
         }
 
-        public void UpdateQuestion(QuestionItem item, int index, int total)
+        public void UpdateQuestion(QuestionItem item, int index, int total, string quizCode = "")
         {
             if (item == null) return;
 
             if (topicText != null)
-                topicText.text = $"[ TOPIC: {item.topic.ToUpper()} ]";
+            {
+                string codeBadge = string.IsNullOrEmpty(quizCode) ? "" : $"  [ QUIZ CODE: {quizCode} ]";
+                topicText.text = $"[ TOPIC: {item.topic.ToUpper()} ]{codeBadge}";
+            }
 
             if (questionProgressText != null)
-                questionProgressText.text = $"QUESTION {index + 1} / {total}";
+            {
+                questionProgressText.text = $"GATE {index + 1} / {total}";
+            }
 
             if (questionBodyText != null)
+            {
                 questionBodyText.text = item.question;
+            }
         }
 
         public void UpdateStats(int lives, int maxLives, int score, int secondsLeft)
         {
             if (livesText != null)
             {
-                string hearts = "";
-                for (int i = 0; i < maxLives; i++)
-                {
-                    hearts += (i < lives) ? "█ " : "░ ";
-                }
-                livesText.text = $"LIVES: {hearts.TrimEnd()}";
+                livesText.text = $"LIVES: {lives} / {maxLives}";
             }
 
             if (scoreText != null)
@@ -89,7 +146,7 @@ namespace Gamify.Racing
 
             if (selectedDoorPreviewText != null)
             {
-                selectedDoorPreviewText.text = $"AIMING AT DOOR [{badge}]: \"{optionText}\"";
+                selectedDoorPreviewText.text = $"AIMING AT GATE [{badge}]: \"{optionText}\"";
             }
         }
 
@@ -102,7 +159,7 @@ namespace Gamify.Racing
 
             if (explanationTitleText != null)
             {
-                explanationTitleText.text = "CRASH! WRONG DOOR";
+                explanationTitleText.text = "CRASH! WRONG GATE";
             }
 
             if (explanationBodyText != null)
@@ -112,7 +169,7 @@ namespace Gamify.Racing
 
             if (explanationPromptText != null)
             {
-                explanationPromptText.text = "PRESS [ SPACE ] TO RETRY QUESTION";
+                explanationPromptText.text = "PRESS [ SPACE ] TO RETRY GATE";
             }
         }
 
@@ -124,7 +181,7 @@ namespace Gamify.Racing
             }
         }
 
-        public void ShowResults(bool victory, int finalScore, int correct, int total, float accuracy)
+        public void ShowResults(bool victory, int finalScore, int correct, int total, float accuracy, string quizCode = "")
         {
             if (resultsPanel != null)
             {
@@ -133,17 +190,18 @@ namespace Gamify.Racing
 
             if (resultsTitleText != null)
             {
-                resultsTitleText.text = victory ? "★ RACE FINISHED ★" : "✖ CRASHED OUT - OUT OF LIVES ✖";
+                resultsTitleText.text = victory ? "AMAZING! RACE COMPLETED" : "GOOD TRY! RACE OVER";
             }
 
             if (resultsScoreText != null)
             {
-                resultsScoreText.text = $"FINAL SCORE: {finalScore}";
+                string codeSuffix = string.IsNullOrEmpty(quizCode) ? "" : $"  (QUIZ: {quizCode})";
+                resultsScoreText.text = $"FINAL SCORE: {finalScore}{codeSuffix}";
             }
 
             if (resultsCorrectText != null)
             {
-                resultsCorrectText.text = $"CORRECT ANSWERS: {correct} / {total}";
+                resultsCorrectText.text = $"GATES CLEARED: {correct} / {total}";
             }
 
             if (resultsAccuracyText != null)

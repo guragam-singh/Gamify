@@ -7,9 +7,10 @@ namespace Gamify.Racing
     [Serializable]
     public class QuestionItem
     {
+        public string id;
         public string question;
         public string[] options;
-        public int correctIndex;
+        public int correctIndex = -1;
         public string explanation;
         public string topic;
 
@@ -17,9 +18,21 @@ namespace Gamify.Racing
         {
             return !string.IsNullOrEmpty(question) &&
                    options != null &&
-                   options.Length == 4 &&
-                   correctIndex >= 0 &&
-                   correctIndex < 4;
+                   options.Length == 4;
+        }
+
+        public static QuestionItem FromQuizQuestion(Gamify.QuizQuestion q)
+        {
+            if (q == null) return null;
+            return new QuestionItem
+            {
+                id = q.id,
+                question = q.question,
+                options = q.options,
+                correctIndex = -1,
+                explanation = "",
+                topic = q.topic
+            };
         }
     }
 
@@ -37,6 +50,25 @@ namespace Gamify.Racing
                 return new List<QuestionItem>();
 
             json = json.Trim();
+
+            // Backend quizzes carry a quiz ID and are evaluated by the server.
+            // Local files share the questions wrapper but include correctIndex;
+            // converting those to QuizQuestion would discard their answer keys.
+            try
+            {
+                var quiz = JsonUtility.FromJson<Gamify.Quiz>(json);
+                if (quiz != null && !string.IsNullOrEmpty(quiz.quiz_id) &&
+                    quiz.questions != null && quiz.questions.Length > 0)
+                {
+                    var list = new List<QuestionItem>();
+                    foreach (var q in quiz.questions)
+                    {
+                        list.Add(QuestionItem.FromQuizQuestion(q));
+                    }
+                    return list;
+                }
+            }
+            catch { }
 
             // Try object with "questions" array
             if (json.StartsWith("{"))

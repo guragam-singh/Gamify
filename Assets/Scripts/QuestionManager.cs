@@ -4,16 +4,22 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
+using Gamify;
 
 namespace Gamify.Racing
 {
     public class QuestionManager : MonoBehaviour
     {
         [Header("Backend Configuration")]
-        [Tooltip("Configurable URL for remote questions. Fallback will trigger if unreachable.")]
-        public string backendUrl = "http://localhost:3000/api/questions/latest";
-        public bool fetchFromBackendOnStart = false;
-        public float requestTimeoutSeconds = 2.5f;
+        [Tooltip("Base URL for GAMIFY quiz backend (e.g. http://127.0.0.1:5050 or host LAN IP)")]
+        public string backendBaseUrl = "http://127.0.0.1:5050";
+        public bool fetchFromBackendOnStart = true;
+        public float requestTimeoutSeconds = 5f;
+
+        [Header("Backend Components")]
+        public QuizApiClient apiClient;
+        public QuizPoller poller;
+        public QuizRun quizRun;
 
         [Header("Local Fallback")]
         public string localResourceName = "questions";
@@ -26,17 +32,95 @@ namespace Gamify.Racing
         public int correctAnswersCount = 0;
         public bool currentQuestionRetried = false;
 
+        public Quiz CurrentQuiz { get; private set; }
+        public string QuizCode => CurrentQuiz != null ? CurrentQuiz.ShortCode : "";
+        public string QuizTitle => CurrentQuiz != null ? CurrentQuiz.title : "Racing Quiz";
+        public string ServerStatus { get; private set; } = "Initializing...";
+        public bool IsLiveQuiz => CurrentQuiz != null;
+
         private List<QuestionItem> _questions = new List<QuestionItem>();
         public List<QuestionItem> Questions => _questions;
 
         public event Action<QuestionItem> OnQuestionChanged;
         public event Action<int, int> OnLivesChanged; // current, max
         public event Action<int> OnScoreChanged;
+        public event Action<string> OnServerStatusChanged;
+        public event Action<Quiz> OnQuizLoaded;
 
         public bool IsLoaded { get; private set; } = false;
+        private bool _isRunInProgress = false;
+
+        private void Awake()
+        {
+            EnsureBackendComponents();
+        }
+
+        private void EnsureBackendComponents()
+        {
+            if (apiClient == null)
+            {
+                apiClient = GetComponent<QuizApiClient>() ?? gameObject.AddComponent<QuizApiClient>();
+            }
+
+            if (poller == null)
+            {
+                poller = GetComponent<QuizPoller>() ?? gameObject.AddComponent<QuizPoller>();
+            }
+
+            if (quizRun == null)
+            {
+                quizRun = GetComponent<QuizRun>() ?? gameObject.AddComponent<QuizRun>();
+            }
+
+            if (!string.IsNullOrEmpty(backendBaseUrl))
+            {
+                apiClient.BaseUrl = backendBaseUrl;
+            }
+
+            poller.SetApiClient(apiClient);
+            quizRun.SetDependencies(apiClient, poller);
+
+            poller.NewQuizAvailable += HandleNewQuizAvailable;
+            poller.WaitingForUpload += HandleWaitingForUpload;
+            poller.ServerUnreachable += HandleServerUnreachable;
+        }
+
+        private void OnDestroy()
+        {
+            if (poller != null)
+            {
+                poller.NewQuizAvailable -= HandleNewQuizAvailable;
+                poller.WaitingForUpload -= HandleWaitingForUpload;
+                poller.ServerUnreachable -= HandleServerUnreachable;
+            }
+        }
+
+        private void HandleNewQuizAvailable(Quiz quiz)
+        {
+            if (_isRunInProgress) return; // Never swap questions mid-run per spec 4.2
+
+            Debug.Log($"[Gamify] New quiz available from backend: {quiz.title} (Code: {quiz.ShortCode}, Questions: {quiz.question_count})");
+            LoadQuizData(quiz);
+            ServerStatus = $"Quiz Ready: [{quiz.ShortCode}] {quiz.title}";
+            OnServerStatusChanged?.Invoke(ServerStatus);
+            OnQuizLoaded?.Invoke(quiz);
+        }
+
+        private void HandleWaitingForUpload()
+        {
+            ServerStatus = "Waiting for notes... Upload on GAMIFY website";
+            OnServerStatusChanged?.Invoke(ServerStatus);
+        }
+
+        private void HandleServerUnreachable(string error)
+        {
+            ServerStatus = $"Can't reach quiz server at {apiClient.BaseUrl}";
+            OnServerStatusChanged?.Invoke(ServerStatus);
+        }
 
         public void Initialize(Action onComplete = null)
         {
+            EnsureBackendComponents();
             StartCoroutine(LoadQuestionsRoutine(onComplete));
         }
 
@@ -44,32 +128,43 @@ namespace Gamify.Racing
         {
             IsLoaded = false;
             _questions.Clear();
+            CurrentQuiz = null;
 
-            if (fetchFromBackendOnStart && !string.IsNullOrEmpty(backendUrl))
+            if (fetchFromBackendOnStart && apiClient != null)
             {
-                Debug.Log($"[Gamify] Attempting to fetch questions from backend: {backendUrl}");
-                using (UnityWebRequest req = UnityWebRequest.Get(backendUrl))
-                {
-                    req.timeout = Mathf.RoundToInt(requestTimeoutSeconds);
-                    yield return req.SendWebRequest();
+                ServerStatus = "Checking quiz server...";
+                OnServerStatusChanged?.Invoke(ServerStatus);
 
-                    if (req.result == UnityWebRequest.Result.Success && !string.IsNullOrEmpty(req.downloadHandler.text))
+                bool responded = false;
+                yield return apiClient.GetLatestQuiz(r =>
+                {
+                    responded = true;
+                    if (r.Ok && r.Data != null)
                     {
-                        var parsed = QuestionParser.ParseJson(req.downloadHandler.text);
-                        if (parsed != null && parsed.Count > 0)
-                        {
-                            _questions = parsed;
-                            Debug.Log($"[Gamify] Successfully loaded {_questions.Count} questions from backend!");
-                        }
+                        LoadQuizData(r.Data);
+                        ServerStatus = $"Connected: [{r.Data.ShortCode}] {r.Data.title}";
+                        Debug.Log($"[Gamify] Loaded {r.Data.questions.Length} questions from backend! Code: {r.Data.ShortCode}");
+                    }
+                    else if (r.StatusCode == 404)
+                    {
+                        ServerStatus = "Waiting for notes... Upload on GAMIFY website";
+                        Debug.Log("[Gamify] No active quiz on server. Poller will wait for student upload.");
                     }
                     else
                     {
-                        Debug.LogWarning($"[Gamify] Backend unavailable ({req.error}). Falling back to local questions.");
+                        ServerStatus = $"Server offline: {r.Error}";
+                        Debug.LogWarning($"[Gamify] Backend unavailable: {r.Error}");
                     }
+                });
+
+                if (!responded)
+                {
+                    ServerStatus = "Connection timed out.";
                 }
+                OnServerStatusChanged?.Invoke(ServerStatus);
             }
 
-            // Fallback 1: Resources
+            // Fallback 1: Local Resources
             if (_questions.Count == 0)
             {
                 TextAsset asset = Resources.Load<TextAsset>(localResourceName);
@@ -98,7 +193,7 @@ namespace Gamify.Racing
                 }
             }
 
-            // Fallback 3: Built-in hardcoded fallback so it's impossible to fail
+            // Fallback 3: Built-in hardcoded fallback so gameplay never fails
             if (_questions.Count == 0)
             {
                 Debug.LogWarning("[Gamify] Using built-in fallback questions.");
@@ -108,6 +203,85 @@ namespace Gamify.Racing
             ResetGameStats();
             IsLoaded = true;
             onComplete?.Invoke();
+        }
+
+        private void LoadQuizData(Quiz quiz)
+        {
+            CurrentQuiz = quiz;
+            _questions.Clear();
+            if (quiz != null && quiz.questions != null)
+            {
+                foreach (var q in quiz.questions)
+                {
+                    _questions.Add(QuestionItem.FromQuizQuestion(q));
+                }
+            }
+        }
+
+        public void StartRun()
+        {
+            _isRunInProgress = true;
+            if (CurrentQuiz != null && quizRun != null)
+            {
+                quizRun.Begin(CurrentQuiz);
+            }
+            if (poller != null)
+            {
+                poller.enabled = false;
+            }
+            ResetGameStats();
+        }
+
+        public void EndRun()
+        {
+            _isRunInProgress = false;
+            if (quizRun != null)
+            {
+                quizRun.End();
+            }
+            if (poller != null)
+            {
+                poller.enabled = true;
+            }
+        }
+
+        public void SubmitAnswer(int questionIndex, int optionIndex, Action<AnswerResult, string> callback)
+        {
+            if (questionIndex != currentQuestionIndex || optionIndex < 0 || optionIndex >= 4)
+            {
+                callback?.Invoke(null, "Invalid question or answer selection");
+                return;
+            }
+
+            // If connected to live backend quiz, submit via QuizRun / API
+            if (CurrentQuiz != null && quizRun != null)
+            {
+                quizRun.Answer(questionIndex, optionIndex, result =>
+                {
+                    callback?.Invoke(result, null);
+                });
+                return;
+            }
+
+            // Otherwise evaluate locally for offline fallback
+            QuestionItem q = GetCurrentQuestion();
+            if (q != null && q.correctIndex >= 0 && q.correctIndex < q.options.Length)
+            {
+                bool isCorrect = (optionIndex == q.correctIndex);
+                var result = new AnswerResult
+                {
+                    is_correct = isCorrect,
+                    explanation = isCorrect ? q.explanation : "",
+                    obstacle_action = isCorrect ? "pass" : "retry"
+                };
+
+                // GameManager records score/count/lives once after the ram resolves.
+                callback?.Invoke(result, null);
+            }
+            else
+            {
+                callback?.Invoke(null, "No active question or missing local answer key");
+            }
         }
 
         public void ResetGameStats()
@@ -158,6 +332,11 @@ namespace Gamify.Racing
         public void RecordWrongAnswer()
         {
             currentQuestionRetried = true;
+            LoseLife();
+        }
+
+        public void LoseLife()
+        {
             currentLives = Mathf.Max(0, currentLives - 1);
             OnLivesChanged?.Invoke(currentLives, initialLives);
         }
@@ -174,6 +353,7 @@ namespace Gamify.Racing
             {
                 new QuestionItem
                 {
+                    id = "local-1",
                     question = "Which data structure operates on a Last-In, First-Out (LIFO) principle?",
                     options = new[] { "Queue", "Stack", "Binary Heap", "Hash Map" },
                     correctIndex = 1,
@@ -182,6 +362,7 @@ namespace Gamify.Racing
                 },
                 new QuestionItem
                 {
+                    id = "local-2",
                     question = "What is the worst-case time complexity of standard QuickSort?",
                     options = new[] { "O(1)", "O(log n)", "O(n log n)", "O(n^2)" },
                     correctIndex = 3,
@@ -190,6 +371,7 @@ namespace Gamify.Racing
                 },
                 new QuestionItem
                 {
+                    id = "local-3",
                     question = "Which HTTP status code indicates a successful request?",
                     options = new[] { "200 OK", "301 Moved", "404 Not Found", "500 Server Error" },
                     correctIndex = 0,
@@ -198,6 +380,7 @@ namespace Gamify.Racing
                 },
                 new QuestionItem
                 {
+                    id = "local-4",
                     question = "Which C# keyword prevents a class from being inherited?",
                     options = new[] { "abstract", "sealed", "static", "readonly" },
                     correctIndex = 1,
@@ -206,6 +389,7 @@ namespace Gamify.Racing
                 },
                 new QuestionItem
                 {
+                    id = "local-5",
                     question = "In Unity, which method is called once per physics update frame?",
                     options = new[] { "Update()", "LateUpdate()", "FixedUpdate()", "Awake()" },
                     correctIndex = 2,

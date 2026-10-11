@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Gamify;
 
 namespace Gamify.Racing
 {
@@ -23,6 +25,7 @@ namespace Gamify.Racing
         public CarController carController;
         public GameUI gameUI;
         public GameAudio gameAudio;
+        public RaceDirector raceDirector;
 
         [Header("Track & Checkpoints")]
         public List<Checkpoint> checkpoints = new List<Checkpoint>();
@@ -38,6 +41,7 @@ namespace Gamify.Racing
         private float _timeRemaining;
         private int _activeCheckpointIndex = 0;
         private bool _isTimerRunning = false;
+        private bool _isSubmittingAnswer = false;
 
         private void Awake()
         {
@@ -71,13 +75,16 @@ namespace Gamify.Racing
             _activeCheckpointIndex = 0;
             selectedDoorIndex = 1;
 
+            questionManager.StartRun();
+
             // Reset car position
             if (carController != null)
             {
                 carController.TeleportTo(new Vector3(-1.5f, 0f, 0f), 1);
             }
 
-            // Setup the first checkpoint
+            // Setup the checkpoints according to question count
+            if (raceDirector != null) raceDirector.PrepareRace();
             PrepareCurrentCheckpoint();
 
             if (gameUI != null)
@@ -169,7 +176,6 @@ namespace Gamify.Racing
 
         private void CycleDoor(int direction)
         {
-            // Cycle 0..3 with wrap-around
             selectedDoorIndex = (selectedDoorIndex + direction + 4) % 4;
 
             if (gameAudio != null) gameAudio.PlaySelect();
@@ -202,30 +208,80 @@ namespace Gamify.Racing
 
         private void ConfirmSelection()
         {
+            if (_isSubmittingAnswer) return; // Prevent double-submit
+
             _isTimerRunning = false;
             CurrentState = GameState.RammingDoor;
+            _isSubmittingAnswer = true;
 
             Checkpoint cp = GetActiveCheckpoint();
-            if (cp == null) return;
+            if (cp == null)
+            {
+                _isSubmittingAnswer = false;
+                return;
+            }
 
             float targetDoorZ = cp.CheckpointZ - 0.2f;
-
             QuestionItem currentQ = questionManager.GetCurrentQuestion();
-            bool isCorrect = (selectedDoorIndex == currentQ.correctIndex);
+
+            AnswerResult serverResult = null;
+            string serverError = null;
+            bool responseReceived = false;
+
+            // Submit answer asynchronously to backend
+            questionManager.SubmitAnswer(questionManager.currentQuestionIndex, selectedDoorIndex, (result, err) =>
+            {
+                serverResult = result;
+                serverError = err;
+                responseReceived = true;
+            });
 
             carController.RamForward(targetDoorZ, () =>
             {
-                OnCarReachedDoor(isCorrect, currentQ, cp);
+                StartCoroutine(WaitForAnswerAndResolve(currentQ, cp, () => responseReceived, () => serverResult, () => serverError));
             });
         }
 
-        private void OnCarReachedDoor(bool isCorrect, QuestionItem q, Checkpoint cp)
+        private IEnumerator WaitForAnswerAndResolve(QuestionItem q, Checkpoint cp, Func<bool> isReceived, Func<AnswerResult> getResult, Func<string> getError)
+        {
+            float timeout = 8f;
+            float elapsed = 0f;
+            while (!isReceived() && elapsed < timeout)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            _isSubmittingAnswer = false;
+            AnswerResult result = getResult();
+            string error = getError();
+
+            if (result != null)
+            {
+                OnCarReachedDoor(result.is_correct, result.explanation, q, cp);
+            }
+            else
+            {
+                // Network error: per spec 4.2 do not deduct lives
+                Debug.LogWarning($"[Gamify] Network error submitting answer: {error}");
+                if (gameAudio != null) gameAudio.PlayWrong();
+                carController.Recoil(cp.WaitingZ, () =>
+                {
+                    CurrentState = GameState.ShowingExplanation;
+                    if (gameUI != null)
+                    {
+                        gameUI.ShowExplanation($"Connection Issue: {error ?? "Timeout"}\nPress [ SPACE ] to retry.");
+                    }
+                });
+            }
+        }
+
+        private void OnCarReachedDoor(bool isCorrect, string explanation, QuestionItem q, Checkpoint cp)
         {
             DoorController chosenDoor = cp.GetDoor(selectedDoorIndex);
 
             if (isCorrect)
             {
-                // Correct!
                 Debug.Log($"[Gamify] Correct answer! Option: {selectedDoorIndex}");
                 if (gameAudio != null) gameAudio.PlayCorrect();
                 if (gameUI != null) gameUI.FlashScreen(new Color(1f, 1f, 1f, 0.4f), 0.25f);
@@ -242,14 +298,14 @@ namespace Gamify.Racing
             }
             else
             {
-                // Wrong!
-                Debug.Log($"[Gamify] Wrong answer! Option: {selectedDoorIndex}, Correct was: {q.correctIndex}");
+                Debug.Log($"[Gamify] Wrong answer! Option: {selectedDoorIndex}");
                 if (gameAudio != null) gameAudio.PlayWrong();
                 if (gameUI != null) gameUI.FlashScreen(new Color(0.2f, 0.2f, 0.2f, 0.6f), 0.35f);
 
                 if (chosenDoor != null)
                 {
                     chosenDoor.FlashWallHit();
+                    chosenDoor.MarkFailed();
                 }
 
                 questionManager.RecordWrongAnswer();
@@ -260,16 +316,15 @@ namespace Gamify.Racing
                 {
                     if (questionManager.currentLives <= 0)
                     {
-                        // Game Over (Out of lives)
                         ShowGameOver();
                     }
                     else
                     {
-                        // Show explanation and let player retry the same question
                         CurrentState = GameState.ShowingExplanation;
                         if (gameUI != null)
                         {
-                            gameUI.ShowExplanation(q.explanation);
+                            string text = string.IsNullOrEmpty(explanation) ? "WRONG GATE! TRY ANOTHER OPTION." : explanation;
+                            gameUI.ShowExplanation(text);
                         }
                     }
                 });
@@ -289,7 +344,6 @@ namespace Gamify.Racing
             }
             else
             {
-                // All questions complete! Victory!
                 ShowVictory();
             }
         }
@@ -314,7 +368,7 @@ namespace Gamify.Racing
                 CurrentState = GameState.ShowingExplanation;
                 if (gameUI != null)
                 {
-                    gameUI.ShowExplanation($"TIME OUT! {q.explanation}");
+                    gameUI.ShowExplanation("TIME OUT! Press [ SPACE ] to retry this gate.");
                 }
             }
         }
@@ -326,7 +380,6 @@ namespace Gamify.Racing
                 gameUI.HideExplanation();
             }
 
-            // Reset door wall graphics if needed
             Checkpoint cp = GetActiveCheckpoint();
             if (cp != null)
             {
@@ -345,7 +398,6 @@ namespace Gamify.Racing
             Checkpoint cp = GetActiveCheckpoint();
             if (cp == null) return;
 
-            // Car drives forward to waiting spot in front of doors
             carController.DriveToCheckpoint(cp.WaitingZ);
             StartCoroutine(WatchForArrivalAtCheckpoint(cp));
         }
@@ -357,7 +409,7 @@ namespace Gamify.Racing
                 yield return null;
             }
 
-            // Arrived at checkpoint
+            if (CurrentState != GameState.DrivingToCheckpoint) yield break;
             CurrentState = GameState.WaitingForAnswer;
             _timeRemaining = questionTimeLimit;
             _isTimerRunning = true;
@@ -381,7 +433,7 @@ namespace Gamify.Racing
 
             if (gameUI != null)
             {
-                gameUI.UpdateQuestion(q, questionManager.currentQuestionIndex, questionManager.Questions.Count);
+                gameUI.UpdateQuestion(q, questionManager.currentQuestionIndex, questionManager.Questions.Count, questionManager.QuizCode);
             }
 
             UpdateSelectionPreview();
@@ -413,6 +465,7 @@ namespace Gamify.Racing
         {
             CurrentState = GameState.ResultsScreen;
             _isTimerRunning = false;
+            questionManager.EndRun();
             if (gameUI != null)
             {
                 gameUI.HideExplanation();
@@ -421,15 +474,33 @@ namespace Gamify.Racing
                     questionManager.score,
                     questionManager.correctAnswersCount,
                     questionManager.Questions.Count,
-                    questionManager.GetAccuracyPercentage()
+                    questionManager.GetAccuracyPercentage(),
+                    questionManager.QuizCode
                 );
             }
+        }
+
+        public bool ApplyRacingCollision()
+        {
+            if (CurrentState != GameState.DrivingToCheckpoint || carController.State != CarState.Cruising) return false;
+            questionManager.LoseLife();
+            UpdateHudStats();
+            if (gameAudio != null) gameAudio.PlayWrong();
+            if (gameUI != null) gameUI.ShowCollisionFeedback();
+            carController.ApplyCollisionSlowdown();
+            if (questionManager.currentLives <= 0)
+            {
+                carController.StopRacing();
+                ShowGameOver();
+            }
+            return true;
         }
 
         private void ShowVictory()
         {
             CurrentState = GameState.ResultsScreen;
             _isTimerRunning = false;
+            questionManager.EndRun();
             if (gameUI != null)
             {
                 gameUI.HideExplanation();
@@ -438,14 +509,14 @@ namespace Gamify.Racing
                     questionManager.score,
                     questionManager.correctAnswersCount,
                     questionManager.Questions.Count,
-                    questionManager.GetAccuracyPercentage()
+                    questionManager.GetAccuracyPercentage(),
+                    questionManager.QuizCode
                 );
             }
         }
 
         public void RestartGame()
         {
-            // Reset all checkpoints
             foreach (var cp in checkpoints)
             {
                 if (cp != null) cp.ResetAllDoors();

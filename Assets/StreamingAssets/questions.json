@@ -34,6 +34,27 @@
       "correctIndex": 2,
       "explanation": "FixedUpdate() runs at a consistent framerate tied to Unity's physics engine interval.",
       "topic": "Unity Engine"
+    },
+    {
+      "question": "Which traversal visits a binary search tree's keys in sorted order?",
+      "options": ["Preorder", "Inorder", "Postorder", "Level order"],
+      "correctIndex": 1,
+      "explanation": "Inorder visits the left subtree, the node, and then the right subtree, producing sorted keys in a binary search tree.",
+      "topic": "Data Structures"
+    },
+    {
+      "question": "Which protocol provides reliable, ordered delivery of a byte stream?",
+      "options": ["UDP", "ICMP", "TCP", "ARP"],
+      "correctIndex": 2,
+      "explanation": "TCP uses sequencing, acknowledgements, and retransmission to provide reliable, ordered byte-stream delivery.",
+      "topic": "Networking"
+    },
+    {
+      "question": "What is the time complexity of binary search on a sorted array?",
+      "options": ["O(n^2)", "O(n)", "O(1)", "O(log n)"],
+      "correctIndex": 3,
+      "explanation": "Binary search halves the remaining search interval at each step, taking logarithmic time.",
+      "topic": "Algorithms"
     }
   ]
 }

@@ -32,7 +32,11 @@ namespace Gamify.Racing
         private Material _wallMaterial;
         private List<GameObject> _activeDebris = new List<GameObject>();
         private bool _isBroken = false;
+        private bool _isFailed = false;
         private Vector3 _originalWallPos;
+
+        public bool IsBroken => _isBroken;
+        public bool IsFailed => _isFailed;
 
         private void Awake()
         {
@@ -75,7 +79,14 @@ namespace Gamify.Racing
 
             if (_wallMaterial != null)
             {
-                _wallMaterial.color = highlighted ? wallHighlightColor : wallDefaultColor;
+                if (_isFailed)
+                {
+                    _wallMaterial.color = highlighted ? new Color(0.4f, 0.15f, 0.15f) : new Color(0.25f, 0.1f, 0.1f);
+                }
+                else
+                {
+                    _wallMaterial.color = highlighted ? wallHighlightColor : wallDefaultColor;
+                }
             }
 
             if (badgeText != null)
@@ -93,8 +104,25 @@ namespace Gamify.Racing
                 indicatorArrow.SetActive(highlighted);
             }
 
-            // Slight scale pulse on selection
             transform.localScale = highlighted ? new Vector3(1.08f, 1.08f, 1.08f) : Vector3.one;
+        }
+
+        public void MarkFailed()
+        {
+            _isFailed = true;
+            if (_wallMaterial != null)
+            {
+                _wallMaterial.color = new Color(0.25f, 0.1f, 0.1f);
+            }
+            if (badgeText != null)
+            {
+                badgeText.text = "[X]";
+                badgeText.color = new Color(0.8f, 0.3f, 0.3f);
+            }
+            if (optionText != null)
+            {
+                optionText.color = new Color(0.55f, 0.4f, 0.4f);
+            }
         }
 
         public void BreakWall()
@@ -120,17 +148,16 @@ namespace Gamify.Racing
             if (_wallMaterial == null) yield break;
 
             Color original = _wallMaterial.color;
-            _wallMaterial.color = Color.white;
+            _wallMaterial.color = new Color(1f, 0.3f, 0.3f);
 
-            // Small shake
             if (wallSolidObject != null)
             {
                 for (int i = 0; i < 6; i++)
                 {
                     wallSolidObject.transform.localPosition = _originalWallPos + new Vector3(
-                        Random.Range(-0.1f, 0.1f),
-                        Random.Range(-0.1f, 0.1f),
-                        Random.Range(-0.1f, 0.1f)
+                        UnityEngine.Random.Range(-0.1f, 0.1f),
+                        UnityEngine.Random.Range(-0.1f, 0.1f),
+                        UnityEngine.Random.Range(-0.1f, 0.1f)
                     );
                     yield return new WaitForSeconds(0.02f);
                 }
@@ -143,6 +170,7 @@ namespace Gamify.Racing
         public void ResetDoor()
         {
             _isBroken = false;
+            _isFailed = false;
             if (wallSolidObject != null)
             {
                 wallSolidObject.SetActive(true);
@@ -167,27 +195,26 @@ namespace Gamify.Racing
                 GameObject chunk = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 chunk.name = $"Debris_{i}";
                 chunk.transform.position = center + new Vector3(
-                    Random.Range(-0.8f, 0.8f),
-                    Random.Range(0.2f, 2.0f),
-                    Random.Range(-0.2f, 0.2f)
+                    UnityEngine.Random.Range(-0.8f, 0.8f),
+                    UnityEngine.Random.Range(0.2f, 2.0f),
+                    UnityEngine.Random.Range(-0.2f, 0.2f)
                 );
-                chunk.transform.localScale = Vector3.one * Random.Range(0.2f, 0.45f);
+                chunk.transform.localScale = Vector3.one * UnityEngine.Random.Range(0.2f, 0.45f);
 
-                // Grayscale material
                 var mr = chunk.GetComponent<MeshRenderer>();
                 var mat = new Material(Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default"));
-                mat.color = new Color(Random.Range(0.3f, 0.8f), Random.Range(0.3f, 0.8f), Random.Range(0.3f, 0.8f));
+                mat.color = new Color(UnityEngine.Random.Range(0.3f, 0.8f), UnityEngine.Random.Range(0.3f, 0.8f), UnityEngine.Random.Range(0.3f, 0.8f));
                 mr.material = mat;
 
                 var rb = chunk.AddComponent<Rigidbody>();
                 rb.mass = 0.5f;
                 Vector3 blastDir = new Vector3(
-                    Random.Range(-3f, 3f),
-                    Random.Range(2f, 6f),
-                    Random.Range(4f, 10f)
+                    UnityEngine.Random.Range(-3f, 3f),
+                    UnityEngine.Random.Range(2f, 6f),
+                    UnityEngine.Random.Range(4f, 10f)
                 );
                 rb.linearVelocity = blastDir;
-                rb.angularVelocity = Random.insideUnitSphere * 15f;
+                rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 15f;
 
                 _activeDebris.Add(chunk);
                 Destroy(chunk, 2.5f);
