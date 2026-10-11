@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Road Rush | GAMIFY Arcade</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="TemplateData/style.css">
+    <style>
+      :root {
+        --sky: #2e9bf0;
+        --ink: #16213a;
+        --dark-bg: #0b111e;
+        --panel: #141e33;
+        --sun: #ffd23f;
+        --grass: #5bc236;
+        --red: #e8443a;
+        --pixel: "Pixelify Sans", monospace, sans-serif;
+        --body: "Atkinson Hyperlegible", system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--dark-bg);
+        color: #fff;
+        font-family: var(--body);
+        overflow: hidden;
+      }
+      .game-wrapper {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+      }
+      /* Top header when opened standalone in a browser tab */
+      .game-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 18px;
+        background: var(--panel);
+        border-bottom: 3px solid var(--ink);
+        font-family: var(--pixel);
+        font-size: 1rem;
+        z-index: 10;
+        flex-shrink: 0;
+      }
+      .is-embedded .game-topbar {
+        display: none; /* Hide topbar when loaded inside dashboard iframe */
+      }
+      .game-topbar a {
+        color: var(--sun);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+        padding: 4px 10px;
+        background: rgba(0, 0, 0, 0.25);
+        border: 2px solid var(--sun);
+        border-radius: 4px;
+        transition: transform 0.1s, background 0.1s;
+      }
+      .game-topbar a:hover {
+        background: var(--sun);
+        color: var(--ink);
+        transform: translateY(-1px);
+      }
+      .game-topbar .title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .game-topbar .badge {
+        font-family: var(--body);
+        font-size: 0.82rem;
+        background: rgba(91, 194, 54, 0.2);
+        color: var(--grass);
+        border: 1px solid var(--grass);
+        padding: 2px 8px;
+        border-radius: 12px;
+      }
+
+      /* Game viewport */
+      .game-stage {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(circle at center, #1b2742 0%, #0b111e 100%);
+        padding: 8px;
+      }
+      #unity-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        max-width: 960px;
+        max-height: 600px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 0 3px var(--ink);
+        border-radius: 4px;
+        background: #000;
+        overflow: hidden;
+      }
+      #unity-canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+        background: #111827;
+      }
+      #unity-loading-bar {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        display: block;
+        text-align: center;
+        z-index: 20;
+      }
+      .loading-hint {
+        margin-top: 14px;
+        font-family: var(--pixel);
+        font-size: 1.1rem;
+        color: var(--sun);
+        letter-spacing: 0.05em;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+      }
+      #unity-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        height: 38px;
+        background: var(--panel);
+        border-top: 2px solid var(--ink);
+        padding: 0 12px;
+        flex-shrink: 0;
+      }
+      .game-controls-hint {
+        font-family: var(--pixel);
+        font-size: 0.88rem;
+        color: #9bb3d6;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .game-controls-hint span b {
+        color: var(--sun);
+        background: rgba(255, 210, 63, 0.15);
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+      #unity-fullscreen-button {
+        cursor: pointer;
+        width: 32px;
+        height: 32px;
+        background: url('TemplateData/fullscreen-button.png') no-repeat center;
+        background-size: 24px 24px;
+        opacity: 0.85;
+        transition: opacity 0.1s, transform 0.1s;
+      }
+      #unity-fullscreen-button:hover {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="game-wrapper">
+      <header class="game-topbar">
+        <a href="/" target="_self">← Dashboard</a>
+        <div class="title">
+          <span>🏎️ ROAD RUSH</span>
+          <span class="badge">● Online</span>
+        </div>
+        <div style="font-size:0.88rem; color:#9bb3d6;">Ram the gate with the right answer</div>
+      </header>
+
+      <main class="game-stage">
+        <div id="unity-container" class="unity-desktop">
+          <canvas id="unity-canvas" width="960" height="600" tabindex="-1"></canvas>
+          <div id="unity-loading-bar">
+            <div id="unity-logo"></div>
+            <div id="unity-progress-bar-empty">
+              <div id="unity-progress-bar-full"></div>
+            </div>
+            <div class="loading-hint">Loading track & physics...</div>
+          </div>
+          <div id="unity-warning"></div>
+          <div id="unity-footer">
+            <div class="game-controls-hint">
+              <span>Steer: <b>A</b> / <b>D</b> or <b>←</b> / <b>→</b></span>
+              <span>Ram: <b>W</b> or <b>↑</b></span>
+            </div>
+            <div id="unity-fullscreen-button" title="Full Screen"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      // Detect if running inside iframe or standalone
+      if (window.self !== window.top) {
+        document.body.classList.add('is-embedded');
+      }
+
+      var canvas = document.querySelector("#unity-canvas");
+      var warningBanner = document.querySelector("#unity-warning");
+
+      function unityShowBanner(msg, type) {
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+        }
+        var div = document.createElement('div');
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type == 'error') div.style = 'background: #e8443a; color: #fff; padding: 10px; border-radius: 4px; font-weight: bold;';
+        else {
+          if (type == 'warning') div.style = 'background: #ffd23f; color: #16213a; padding: 10px; border-radius: 4px;';
+          setTimeout(function() {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/Build.loader.js";
+      var config = {
+        arguments: [],
+        dataUrl: buildUrl + "/Build.data.br",
+        frameworkUrl: buildUrl + "/Build.framework.js.br",
+        codeUrl: buildUrl + "/Build.wasm.br",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "Gamify",
+        productVersion: "1.0",
+        showBanner: unityShowBanner,
+      };
+
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+        document.querySelector("#unity-container").className = "unity-mobile";
+        canvas.className = "unity-mobile";
+      }
+
+      document.querySelector("#unity-loading-bar").style.display = "block";
+
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          document.querySelector("#unity-progress-bar-full").style.width = (100 * progress) + "%";
+        }).then((unityInstance) => {
+          document.querySelector("#unity-loading-bar").style.display = "none";
+          document.querySelector("#unity-fullscreen-button").onclick = () => {
+            unityInstance.SetFullscreen(1);
+          };
+        }).catch((message) => {
+          console.error("Unity load failed:", message);
+          unityShowBanner("Failed to launch Road Rush: " + message, "error");
+        });
+      };
+
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>

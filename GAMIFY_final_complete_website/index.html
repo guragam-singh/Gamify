@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2e9bf0" id="metaThemeColor">
+<script>
+  (function(){
+    try {
+      var t = localStorage.getItem('gamify.theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', t);
+    } catch(e){}
+  })();
+</script>
+<title>GAMIFY — turn your notes into a race</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sky:#2e9bf0; --sky-soft:#dff0ff; --cloud:#f5faff;
+  --ink:#16213a; --ink-soft:#4a5672;
+  --sun:#ffd23f; --grass:#5bc236; --grass-dark:#3a8d1f; --red:#e8443a;
+  --paper:#ffffff; --line:#c9d8ea;
+  --pixel:"Pixelify Sans",ui-monospace,monospace;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --max:1120px;
+  --frame-border:var(--ink);
+  --shadow:rgba(22,33,58,.18);
+  --btn-text:#16213a;
+  --btn-plain-bg:var(--paper);
+  --nav-active-bg:var(--ink);
+  --nav-active-color:#ffffff;
+  --paths-bg:var(--sky-soft);
+  --input-bg:#ffffff;
+  --board-you:#fff7d1;
+  --board-you-color:var(--ink);
+  --option-correct-face:#d9f7c8;
+  --option-correct-color:#1a4d12;
+  --option-wrong-face:#ffe0dd;
+  --option-wrong-color:#7a1f1d;
+  --footer-bg:#16213a;
+  --footer-color:#c9d3e6;
+  --dropzone-drag:#fff7d1;
+}
+
+[data-theme="dark"]{
+  --cloud:#0c1322;
+  --paper:#16213a;
+  --ink:#eaf2fc;
+  --ink-soft:#96a7c4;
+  --sky-soft:#182844;
+  --line:#273754;
+  --frame-border:#060b14;
+  --shadow:rgba(0,0,0,.55);
+  --btn-text:#16213a;
+  --btn-plain-bg:#223252;
+  --nav-active-bg:var(--sky);
+  --nav-active-color:#0c1322;
+  --paths-bg:#111b2e;
+  --input-bg:#10192a;
+  --board-you:#2c2914;
+  --board-you-color:#ffd23f;
+  --option-correct-face:#18361e;
+  --option-correct-color:#a8f5a2;
+  --option-wrong-face:#3b1b1d;
+  --option-wrong-color:#fca5a5;
+  --footer-bg:#080d18;
+  --footer-color:#8e9eb8;
+  --dropzone-drag:#262312;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--cloud);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55}
+img{max-width:100%;display:block}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+.hidden{display:none!important}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{width:min(100% - 32px,var(--max));margin-inline:auto}
+h1,h2,h3{font-family:var(--pixel);font-weight:700;line-height:1.08;letter-spacing:.01em;margin:0}
+h1{font-size:clamp(2.2rem,5.4vw,3.6rem)}
+h2{font-size:clamp(1.7rem,3.6vw,2.4rem)}
+h3{font-size:1.35rem}
+p{margin:0}
+.lede{color:var(--ink-soft);max-width:60ch;margin-top:.6rem}
+svg.px{shape-rendering:crispEdges;display:block}
+/* Pixelify's "fi" ligature reads as a stray glyph, and its 2/5 look like Z/S: numbers use the body face. */
+body *{font-variant-ligatures:none}
+.num{font-family:var(--body)!important;font-weight:700;font-variant-numeric:tabular-nums}
+.card,.module-detail{scroll-margin-top:84px}
+
+/* Pixel frame: four offset shadows draw a border with notched corners, like old game UI. */
+.frame{
+  background:var(--paper);
+  box-shadow:0 -4px 0 var(--frame-border),0 4px 0 var(--frame-border),-4px 0 0 var(--frame-border),4px 0 0 var(--frame-border),0 12px 0 var(--shadow);
+  margin:4px;
+}
+
+/* Buttons: pixel-framed and they physically press down. */
+.btn{
+  --face:var(--sun);
+  display:inline-flex;align-items:center;justify-content:center;gap:.5em;
+  font-family:var(--pixel);font-weight:700;font-size:1.05rem;
+  padding:.7em 1.15em;border:0;background:var(--face);color:var(--btn-text);text-decoration:none;
+  box-shadow:0 -3px 0 var(--frame-border),0 3px 0 var(--frame-border),-3px 0 0 var(--frame-border),3px 0 0 var(--frame-border),inset 0 -5px 0 rgba(0,0,0,.16);
+  margin:3px;transition:transform .08s,box-shadow .08s;
+}
+.btn:hover{filter:brightness(1.05)}
+.btn:active{transform:translateY(3px);box-shadow:0 -3px 0 var(--frame-border),0 3px 0 var(--frame-border),-3px 0 0 var(--frame-border),3px 0 0 var(--frame-border),inset 0 -1px 0 rgba(0,0,0,.16)}
+.btn[disabled]{cursor:not-allowed;filter:grayscale(.7);opacity:.6}
+.btn.go{--face:var(--grass);color:#fff;text-shadow:0 2px 0 var(--grass-dark)}
+.btn.plain{--face:var(--btn-plain-bg);color:var(--ink)}
+.btn.small{font-size:.9rem;padding:.5em .85em}
+
+/* Nav */
+.nav{position:sticky;top:0;z-index:50;background:var(--paper);border-bottom:4px solid var(--frame-border)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--pixel);font-weight:700;font-size:1.45rem;text-decoration:none;letter-spacing:.04em;color:var(--ink)}
+.nav-links{display:flex;align-items:center;gap:8px}
+.nav-links a{font-family:var(--pixel);font-weight:500;font-size:1.02rem;text-decoration:none;padding:.4em .75em;border-radius:4px;color:var(--ink);transition:background .1s}
+.nav-links a:hover{background:var(--sky-soft)}
+.nav-links a[aria-current="page"]{background:var(--nav-active-bg);color:var(--nav-active-color);font-weight:700}
+.nav-links .btn{margin-left:4px}
+.menu-toggle{display:none;border:3px solid var(--frame-border);background:var(--paper);color:var(--ink);border-radius:4px;padding:6px 10px;font-family:var(--pixel)}
+.theme-toggle{display:inline-flex;align-items:center;gap:6px;padding:.45em .8em;font-family:var(--pixel);font-size:.92rem;cursor:pointer}
+.theme-toggle .theme-icon{font-size:1.05rem;line-height:1}
+
+/* Hero: the animated valley with an RPG dialogue box. */
+.hero{position:relative;min-height:calc(100svh - 64px);display:flex;align-items:flex-end;overflow:hidden;background:#7ec8f5}
+.hero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
+.hero .wrap{position:relative;padding-block:48px 56px}
+.dialog{max-width:640px;padding:26px 30px 28px;position:relative}
+.nameplate{position:absolute;top:-26px;left:18px;background:var(--ink);color:#fff;font-family:var(--pixel);font-weight:500;font-size:.95rem;padding:.25em .8em}
+.dialog h1{margin-top:4px}
+.typed{margin-top:14px;font-size:1.12rem;min-height:3.3em;color:var(--ink-soft)}
+.caret{display:inline-block;margin-left:6px;color:var(--red);font-size:.8em;animation:blink 1s steps(2) infinite}
+.dialog .actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:20px}
+
+/* Paths */
+.paths{padding:72px 0 0;background:var(--paths-bg)}
+.path-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:32px;align-items:stretch}
+.path{display:flex;flex-direction:column;gap:12px;align-items:flex-start;text-align:left;border:0;padding:26px 24px 24px;transition:transform .12s,filter .12s;height:100%}
+.path:hover{transform:translateY(-4px);filter:brightness(1.02)}
+.path .icon{width:56px;height:56px;display:grid;place-items:center;background:var(--sky-soft);margin-bottom:4px}
+.path h3{color:var(--ink);font-size:1.35rem}
+.path p{color:var(--ink-soft);font-size:.98rem;line-height:1.55}
+.path .go-label{margin-top:auto;padding-top:12px;font-family:var(--pixel);font-weight:700;color:var(--sky);display:inline-flex;align-items:center;gap:6px}
+.ground{height:44px;margin-top:72px;background:
+  linear-gradient(var(--grass) 0 12px,var(--grass-dark) 12px 16px,#8a5a2b 16px);
+  position:relative}
+.ground:before{content:"";position:absolute;left:0;right:0;top:-8px;height:8px;
+  background:linear-gradient(90deg,var(--grass) 0 8px,transparent 8px 16px) 0 0/16px 8px repeat-x}
+
+/* Inner pages */
+.page{padding:48px 0 88px;min-height:calc(100svh - 64px)}
+.page-head{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;flex-wrap:wrap;margin-bottom:28px}
+
+/* Stepper */
+.steps{display:flex;align-items:center;gap:0;list-style:none;padding:0;margin:0 0 28px;counter-reset:step;flex-wrap:wrap}
+.steps li{counter-increment:step;display:flex;align-items:center;gap:10px;font-family:var(--pixel);font-weight:500;color:var(--ink-soft);padding:8px 18px 8px 0}
+.steps li:before{content:counter(step);font-family:var(--body);width:32px;height:32px;display:grid;place-items:center;background:var(--paper);border:3px solid var(--line);font-weight:700;color:var(--ink)}
+.steps li:not(:last-child):after{content:"";width:36px;height:4px;background:var(--line);margin-left:8px}
+.steps li.active{color:var(--ink);font-weight:700}
+.steps li.active:before{background:var(--sun);border-color:var(--frame-border);color:#16213a}
+.steps li.done:before{content:"✓";background:var(--grass);border-color:var(--frame-border);color:#fff}
+
+.card{padding:32px 28px;margin-bottom:40px}
+.card-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px}
+
+/* Server status */
+.server{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--ink-soft)}
+.server .dot{width:10px;height:10px;background:var(--line)}
+.server.ok .dot{background:var(--grass)}
+.server.down .dot{background:var(--red)}
+
+/* Dropzone */
+.dropzone{border:3px dashed var(--sky);background:var(--sky-soft);padding:36px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;transition:background .15s,border-color .15s}
+.dropzone.dragover{background:var(--dropzone-drag);border-color:var(--frame-border)}
+.dropzone strong{font-family:var(--pixel);font-size:1.35rem;color:var(--ink)}
+.dropzone .hint{color:var(--ink-soft);font-size:.95rem}
+.file-list{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:8px}
+.file-list li{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--cloud);border:2px solid var(--line)}
+.file-tag{font-family:var(--pixel);font-weight:700;font-size:.8rem;background:var(--ink);color:#fff;padding:.2em .5em;min-width:44px;text-align:center}
+.file-name{flex:1;min-width:0;overflow-wrap:anywhere}
+.file-name small{display:block;color:var(--ink-soft);font-size:.82rem}
+.remove{border:0;background:none;color:var(--ink-soft);text-decoration:underline;font-size:.9rem}
+.remove:hover{color:var(--red)}
+.upload-foot{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:20px}
+.status{font-size:.95rem;color:var(--ink-soft)}
+.status.error{color:var(--red);font-weight:700}
+
+/* Loading */
+.loading{display:flex;align-items:center;gap:14px;font-family:var(--pixel);font-size:1.15rem;padding:24px 0}
+.loading .blocks{display:flex;gap:5px}
+.loading .blocks i{width:12px;height:12px;background:var(--sky);animation:hop .9s infinite}
+.loading .blocks i:nth-child(2){animation-delay:.15s}.loading .blocks i:nth-child(3){animation-delay:.3s}
+
+/* Ready / hand-off */
+.ready{display:flex;gap:24px;align-items:flex-start}
+.ready .actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:20px}
+.ready-code{margin-top:14px;font-size:1.05rem}
+.ready-code b{background:var(--ink);color:var(--sun);padding:.15em .55em;letter-spacing:.12em;margin-left:6px}
+@media (max-width:640px){.ready{flex-direction:column}}
+
+/* Quiz */
+.hud{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-family:var(--pixel);font-weight:500}
+.hearts{display:flex;gap:6px}
+.hearts svg.lost{opacity:.18}
+.xp{background:var(--ink);color:var(--sun);padding:.2em .7em}
+.track{position:relative;height:68px;margin:18px 0 26px;background:#4b5160;border-top:6px solid #fff;border-bottom:6px solid #fff;overflow:hidden}
+.track:before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;background:linear-gradient(90deg,#fff 0 22px,transparent 22px 44px) 0 0/44px 4px repeat-x}
+.track .finish{position:absolute;right:0;top:0;bottom:0;width:24px;background:repeating-conic-gradient(#fff 0 25%,var(--ink) 0 50%) 0 0/12px 12px}
+.track .car{position:absolute;top:50%;left:8px;transform:translateY(-50%);transition:left .6s cubic-bezier(.3,1.3,.5,1)}
+.source-note{font-size:.92rem;color:var(--ink-soft);background:var(--cloud);border-left:5px solid var(--sky);padding:10px 14px;margin-bottom:22px}
+.source-note.warn{border-left-color:var(--sun);background:#fff9e0}
+.q-topic{font-size:.9rem;color:var(--ink-soft);margin-bottom:6px}
+.q-text{font-family:var(--body);font-weight:700;font-size:clamp(1.2rem,2.4vw,1.5rem);line-height:1.4;max-width:62ch}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px;padding:0;list-style:none}
+.option{width:100%;text-align:left;display:flex;justify-content:flex-start;gap:14px;align-items:center;font-family:var(--body);font-weight:400;font-size:1.05rem;padding:14px 16px;--face:var(--paper);color:var(--ink)}
+.option .key{font-family:var(--body);font-weight:700;width:30px;height:30px;flex:none;display:grid;place-items:center;background:var(--sky-soft);border:2px solid var(--frame-border);color:var(--ink)}
+.option.correct{--face:var(--option-correct-face);color:var(--option-correct-color)}.option.correct .key{background:var(--grass);color:#fff;border-color:var(--frame-border)}
+.option.wrong{--face:var(--option-wrong-face);color:var(--option-wrong-color);text-decoration:line-through;animation:shake .35s}.option.wrong .key{background:var(--red);color:#fff;border-color:var(--frame-border)}
+.option[disabled]{cursor:default;filter:none;opacity:1}
+.option.wrong[disabled],.option.faded[disabled]{opacity:.55}
+.feedback{margin-top:22px;min-height:1.5em}
+.feedback .verdict{font-family:var(--pixel);font-weight:700;font-size:1.25rem}
+.feedback .verdict.good{color:var(--grass-dark)}.feedback .verdict.bad{color:var(--red)}
+.feedback p{margin-top:4px;color:var(--ink-soft);max-width:62ch}
+.quiz-foot{display:flex;justify-content:flex-end;margin-top:18px}
+
+/* Results */
+.results{text-align:center;padding:12px 0}
+.results .big{font-family:var(--pixel);font-weight:700;font-size:clamp(3rem,9vw,5rem);color:var(--sky);line-height:1}
+.results .actions{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:24px}
+
+/* Games */
+.games{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-top:24px;align-items:stretch}
+.game{display:flex;flex-direction:column;height:100%}
+.game .poster{position:relative;aspect-ratio:2/3;overflow:hidden;background:#0b111e}
+.game .poster img{width:100%;height:100%;object-fit:cover}
+.game.locked .poster img{filter:grayscale(.65) brightness(.75)}
+.game .lock{position:absolute;inset:auto 12px 12px 12px;background:#090e18;color:#fff;font-family:var(--pixel);padding:.45em .8em;display:flex;gap:8px;align-items:center;border:1px solid rgba(255,255,255,.15)}
+.game .info{padding:20px;display:flex;flex-direction:column;gap:8px;flex:1}
+.game .info p{color:var(--ink-soft);font-size:.96rem;margin-bottom:10px}
+.game .genre{font-size:.85rem;color:var(--ink-soft)}
+.game .btn{margin-top:auto;align-self:flex-start}
+
+/* Learn */
+.modules{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;align-items:stretch}
+.module{padding:26px 24px 24px;display:flex;flex-direction:column;gap:10px;height:100%}
+.module .meta{font-size:.88rem;color:var(--ink-soft)}
+.module p{color:var(--ink-soft);font-size:.98rem}
+.module .btn{margin-top:auto;align-self:flex-start}
+.module-detail{margin-top:36px;padding:26px}
+.module-detail ol{margin:12px 0 18px;padding-left:1.3em}
+.module-detail li{margin:4px 0}
+
+/* Leaderboard */
+.board{max-width:760px;padding:8px 26px 22px}
+.board table{width:100%;border-collapse:collapse}
+.board th{text-align:left;font-weight:400;font-size:.88rem;color:var(--ink-soft);padding:14px 8px 8px}
+.board td{padding:12px 8px;border-top:2px solid var(--line)}
+.board .rank{font-family:var(--pixel);font-weight:700;font-size:1.2rem;width:48px}
+.board tr.top1 .rank{color:#c99400}.board tr.top2 .rank{color:#7d8ba3}.board tr.top3 .rank{color:#b4672b}
+.board .who b{display:block}.board .who small{color:var(--ink-soft)}
+.board .pts{text-align:right;font-family:var(--pixel);font-weight:700;font-size:1.15rem;white-space:nowrap}
+.board tr.you td{background:var(--board-you);color:var(--board-you-color)}
+.board-note{font-size:.9rem;color:var(--ink-soft);margin-top:14px}
+
+/* Modal + toast */
+.modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(22,33,58,.6);display:grid;place-items:center;padding:20px}
+.modal{width:min(100%,460px);padding:26px;position:relative;animation:pop .18s ease-out}
+.modal-close{position:absolute;top:12px;right:12px;border:0;background:none;font-size:1.6rem;line-height:1;padding:4px 8px;color:var(--ink);cursor:pointer}
+.modal p{color:var(--ink-soft);margin-top:8px;font-size:.96rem}
+.field{display:grid;gap:6px;margin-top:14px}
+.field label{font-weight:700;font-size:.95rem;color:var(--ink)}
+.field input{border:3px solid var(--frame-border);padding:.6em .7em;background:var(--input-bg);color:var(--ink);border-radius:0}
+.field input:focus-visible{outline:3px solid var(--sun);outline-offset:0}
+.form-msg{margin-top:12px;font-size:.92rem;color:var(--grass-dark)}
+.placeholder-screen{margin-top:16px;background:var(--paper);color:var(--ink);padding:28px 18px;text-align:center;font-family:var(--pixel);border:3px dashed var(--line)}
+.modal.modal-game{width:min(100% - 20px, 1060px);max-height:94vh;display:flex;flex-direction:column;padding:18px 20px 16px}
+.game-container-wrap{position:relative;width:100%;aspect-ratio:16/10;max-height:68vh;background:#0b111e;border:3px solid var(--frame-border);margin-top:10px;box-shadow:inset 0 0 24px rgba(0,0,0,.7)}
+.game-arena-card{box-shadow:0 -4px 0 var(--frame-border),0 4px 0 var(--frame-border),-4px 0 0 var(--frame-border),4px 0 0 var(--frame-border),0 12px 0 var(--shadow)}
+.toast{position:fixed;left:50%;bottom:24px;z-index:150;transform:translate(-50%,16px);opacity:0;pointer-events:none;background:var(--ink);color:#fff;font-family:var(--pixel);padding:.7em 1.1em;transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+footer{background:var(--footer-bg);color:var(--footer-color);font-size:.9rem;padding:24px 0;border-top:4px solid var(--frame-border)}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+@keyframes blink{to{opacity:0}}
+@keyframes hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-8px)}}
+@keyframes shake{20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+@keyframes pop{from{transform:scale(.96);opacity:0}}
+
+@media (max-width:860px){
+  .path-grid,.modules{grid-template-columns:1fr}
+  .games{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  .menu-toggle{display:block}
+  .nav-links{display:none;position:absolute;top:64px;left:0;right:0;background:var(--paper);border-bottom:4px solid var(--frame-border);flex-direction:column;align-items:stretch;padding:12px 16px 18px}
+  .nav-links.open{display:flex}
+  .nav-links .btn{margin:10px 3px 0}
+  .dialog{padding:22px 18px}
+  .options{grid-template-columns:1fr}
+  .games{grid-template-columns:1fr}
+  .game .poster{aspect-ratio:4/5}
+  .card{padding:20px}
+  .steps li{padding-right:10px}.steps li:not(:last-child):after{width:16px}
+  .steps li span{display:none}.steps li.active span{display:inline}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a href="#home" class="brand" data-route="home"><span data-icon="flag" data-size="4"></span>GAMIFY</a>
+    <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="navLinks">Menu</button>
+    <nav class="nav-links" id="navLinks" aria-label="Main">
+      <a href="#play" data-route="play">Play</a>
+      <a href="#game" data-route="game">Road Rush 🏎️</a>
+      <a href="#learn" data-route="learn">Learn</a>
+      <a href="#leaderboard" data-route="leaderboard">Leaderboard</a>
+      <button class="btn small plain theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode" title="Toggle theme">
+        <span class="theme-icon" aria-hidden="true">🌙</span>
+        <span class="theme-label">Dark</span>
+      </button>
+      <button class="btn small" id="signupOpen" type="button">Sign up</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- HOME -->
+<div data-page="home">
+  <section class="hero" aria-labelledby="heroTitle">
+    <img src="fantasy-valley-animated.gif" alt="">
+    <div class="wrap">
+      <div class="dialog frame">
+        <span class="nameplate">GAMIFY</span>
+        <h1 id="heroTitle">Turn your notes into a race.</h1>
+        <p class="typed" id="heroTyped" data-text="Drop in a PDF, a worksheet, or a photo of your notes. Every right answer moves your car closer to the finish line."></p>
+        <div class="actions">
+          <a class="btn go" href="#play" data-route="play">Start with my notes</a>
+          <a class="btn plain" href="#learn" data-route="learn">Browse lessons</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="paths" aria-labelledby="pathsTitle">
+    <div class="wrap">
+      <h2 id="pathsTitle">Where to next?</h2>
+      <p class="lede">Make a quiz from what you're studying, warm up with a short lesson, or check who's on top this week.</p>
+      <div class="path-grid">
+        <button class="path frame" data-route="play" type="button">
+          <span class="icon" data-icon="page" data-size="5"></span>
+          <h3>Quiz me on my notes</h3>
+          <p>Upload your notes and get five questions made from them. Answer to drive.</p>
+          <span class="go-label">Start a quiz</span>
+        </button>
+        <button class="path frame" data-route="learn" type="button">
+          <span class="icon" data-icon="book" data-size="4"></span>
+          <h3>Learn something new</h3>
+          <p>Short lessons in science, maths, and words — each one takes under ten minutes.</p>
+          <span class="go-label">Open lessons</span>
+        </button>
+        <button class="path frame" data-route="leaderboard" type="button">
+          <span class="icon" data-icon="trophy" data-size="5"></span>
+          <h3>See the leaderboard</h3>
+          <p>Points from every quiz you finish add up. Find out where you rank.</p>
+          <span class="go-label">View rankings</span>
+        </button>
+      </div>
+    </div>
+    <div class="ground" aria-hidden="true"></div>
+  </section>
+</div>
+
+<!-- PLAY -->
+<section class="page hidden" data-page="play" aria-labelledby="playTitle">
+  <div class="wrap">
+    <div class="page-head">
+      <div>
+        <h1 id="playTitle">Quiz me on my notes</h1>
+        <p class="lede">Add the notes you're studying. We'll read them, ask you five questions, and you race to the finish.</p>
+      </div>
+    </div>
+
+    <ol class="steps" id="steps">
+      <li class="active"><span>Add notes</span></li>
+      <li><span>Answer questions</span></li>
+      <li><span>Finish the race</span></li>
+    </ol>
+
+    <!-- Step 1 -->
+    <section class="card frame" id="uploadCard" aria-labelledby="uploadTitle">
+      <div class="card-head">
+        <h2 id="uploadTitle">Add your notes</h2>
+        <p class="server" id="serverStatus"><span class="dot"></span><span>Checking the quiz server…</span></p>
+      </div>
+      <div class="dropzone" id="dropzone">
+        <span data-icon="page" data-size="6"></span>
+        <strong>Drop files here</strong>
+        <span class="hint" id="acceptHint">PDF, text, or a photo of your notes · up to 5 files, 10 MB each</span>
+        <label class="btn small" for="fileInput">Choose files</label>
+        <input class="sr-only" id="fileInput" type="file" multiple accept=".pdf,.txt,.md,.png,.jpg,.jpeg,.webp,image/*,application/pdf,text/plain">
+      </div>
+      <ul class="file-list" id="fileList" aria-live="polite"></ul>
+      <div class="upload-foot">
+        <p class="status" id="uploadStatus">No files yet.</p>
+        <button class="btn go" id="generateBtn" type="button">Make my quiz</button>
+      </div>
+      <div class="loading hidden" id="loading" role="status">
+        <span class="blocks" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span id="loadingText">Reading your notes…</span>
+      </div>
+    </section>
+
+    <!-- Step 2a: hand-off to the Unity game -->
+    <section class="card frame hidden" id="readyCard" aria-labelledby="readyTitle">
+      <div class="ready">
+        <span data-icon="car" data-size="6"></span>
+        <div>
+          <h2 id="readyTitle">Your quiz is ready</h2>
+          <p class="lede" id="readySummary"></p>
+          <p class="ready-code">Quiz code <b class="num" id="readyCode"></b></p>
+          <p class="lede">Road Rush is ready to play right in your browser! Drive through the gates that match the right answers to score XP and blast to the finish line.</p>
+          <div class="actions">
+            <button class="btn go" id="playRoadRushFromReady" type="button"><span data-icon="car" data-size="3"></span> Race in Road Rush</button>
+            <button class="btn plain" id="playHereBtn" type="button">Quiz here (text)</button>
+            <button class="btn plain" id="anotherQuizBtn" type="button">Make another quiz</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 2 -->
+    <section class="card frame hidden" id="quizCard" aria-labelledby="questionText">
+      <div class="hud">
+        <span class="num" id="qCounter">Question 1 of 5</span>
+        <span class="hearts" id="hearts" aria-label="3 lives left"></span>
+        <span class="xp num" id="xp">0 XP</span>
+      </div>
+      <div class="track" aria-hidden="true"><span class="car" id="car" data-icon="car" data-size="5"></span><span class="finish"></span></div>
+      <p class="source-note" id="sourceNote"></p>
+      <p class="q-topic" id="qTopic"></p>
+      <p class="q-text" id="questionText"></p>
+      <ul class="options" id="options"></ul>
+      <div class="feedback" id="feedback" aria-live="polite"></div>
+      <div class="quiz-foot"><button class="btn go hidden" id="nextBtn" type="button">Next question</button></div>
+    </section>
+
+    <!-- Step 3 -->
+    <section class="card frame hidden" id="resultCard" aria-labelledby="resultTitle">
+      <div class="results">
+        <h2 id="resultTitle">You crossed the finish line!</h2>
+        <p class="big num" id="resultXp">0 XP</p>
+        <p class="lede" id="resultSummary" style="margin-inline:auto"></p>
+        <div class="actions">
+          <button class="btn go" id="playRoadRushFromResult" type="button">Race in Road Rush</button>
+          <button class="btn plain" id="replayBtn" type="button">Try these notes again</button>
+          <button class="btn plain" id="newNotesBtn" type="button">Use different notes</button>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="gamesTitle" style="margin-top:64px">
+      <h2 id="gamesTitle">Games</h2>
+      <p class="lede">Your quiz questions show up as gates on the track. Road Rush is ready; two more worlds are being built.</p>
+      <div class="games">
+        <article class="game frame">
+          <div class="poster"><img src="road-rush-poster.png" alt="Road Rush poster: a red sports car racing through a pixel-art city" loading="lazy"></div>
+          <div class="info">
+            <span class="genre">Racing</span>
+            <h3>Road Rush</h3>
+            <p>Answer correctly to pass each gate. Miss, and you'll have to try again before you can get through.</p>
+            <button class="btn go" id="playRoadRush" type="button">Play Road Rush</button>
+          </div>
+        </article>
+        <article class="game frame locked">
+          <div class="poster"><img src="spellbound-woods-poster.png" alt="Spellbound Woods poster: a glowing forest with a stone archway" loading="lazy"><span class="lock"><span data-icon="lock" data-size="3"></span>Coming soon</span></div>
+          <div class="info">
+            <span class="genre">Exploration</span>
+            <h3>Spellbound Woods</h3>
+            <p>Follow the lanterns and unlock paths through the forest by answering riddles.</p>
+            <button class="btn plain" type="button" data-locked>Not ready yet</button>
+          </div>
+        </article>
+        <article class="game frame locked">
+          <div class="poster"><img src="cosmic-archive-poster.png" alt="Cosmic Archive poster: an observatory floating in space" loading="lazy"><span class="lock"><span data-icon="lock" data-size="3"></span>Coming soon</span></div>
+          <div class="info">
+            <span class="genre">Space adventure</span>
+            <h3>Cosmic Archive</h3>
+            <p>Restore a lost observatory one star chart at a time.</p>
+            <button class="btn plain" type="button" data-locked>Not ready yet</button>
+          </div>
+        </article>
+      </div>
+      <!-- Unity integration point: replace openGame() with the hosted WebGL build URL when it exists. -->
+    </section>
+  </div>
+</section>
+
+<!-- LEARN -->
+<section class="page hidden" data-page="learn" aria-labelledby="learnTitle">
+  <div class="wrap">
+    <div class="page-head">
+      <div>
+        <h1 id="learnTitle">Lessons</h1>
+        <p class="lede">Short warm-ups before you quiz yourself. Pick one to see what's inside.</p>
+      </div>
+    </div>
+    <div class="modules">
+      <article class="module frame">
+        <span data-icon="atom" data-size="5"></span>
+        <h3>Science explorers</h3>
+        <p class="meta">8 minutes · 3 activities</p>
+        <p>Pushes, pulls, and the difference between living and non-living things.</p>
+        <button class="btn small" data-module="science" type="button">Open lesson</button>
+      </article>
+      <article class="module frame">
+        <span data-icon="plus" data-size="5"></span>
+        <h3>Maths quest</h3>
+        <p class="meta">6 minutes · 3 activities</p>
+        <p>Spot number patterns and pick a strategy for word problems.</p>
+        <button class="btn small" data-module="maths" type="button">Open lesson</button>
+      </article>
+      <article class="module frame">
+        <span data-icon="book" data-size="4"></span>
+        <h3>Word wizards</h3>
+        <p class="meta">7 minutes · 3 activities</p>
+        <p>Work out what new words mean from the sentences around them.</p>
+        <button class="btn small" data-module="words" type="button">Open lesson</button>
+      </article>
+    </div>
+    <section class="module-detail frame hidden" id="moduleDetail" aria-live="polite">
+      <h2 id="moduleTitle"></h2>
+      <p class="lede" id="moduleDescription"></p>
+      <ol id="moduleList"></ol>
+      <button class="btn go" data-route="play" type="button">Quiz me on this</button>
+    </section>
+  </div>
+</section>
+
+<!-- LEADERBOARD -->
+<section class="page hidden" data-page="leaderboard" aria-labelledby="boardTitle">
+  <div class="wrap">
+    <div class="page-head">
+      <div>
+        <h1 id="boardTitle">This week's leaderboard</h1>
+        <p class="lede">Finish a quiz to get on the board. Your best score is saved on this device.</p>
+      </div>
+    </div>
+    <div class="board frame">
+      <table>
+        <thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col" style="text-align:right">Points</th></tr></thead>
+        <tbody id="boardBody"></tbody>
+      </table>
+      <p class="board-note">Other players are sample data until accounts are connected.</p>
+    </div>
+  </div>
+</section>
+
+<!-- GAME -->
+<section class="page hidden" data-page="game" aria-labelledby="gamePageTitle">
+  <div class="wrap">
+    <div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+      <div>
+        <h1 id="gamePageTitle">Road Rush</h1>
+        <p class="lede">Race down the track and ram the gate that matches the right answer to score XP!</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span class="badge frame num" id="gameActiveCode" style="padding:6px 14px; font-weight:700; background:var(--sun);">Quiz Code: LIVE</span>
+        <button class="btn small go" id="gameFullscreenTrigger" type="button">⛶ Fullscreen</button>
+        <a class="btn small plain" id="gameStandaloneLink" href="/game/" target="_blank" rel="noopener">Open Standalone ↗</a>
+      </div>
+    </div>
+
+    <div class="game-arena-card frame" style="margin-top:24px; padding:12px; background:#0b111e;">
+      <div class="game-frame-container" style="position:relative; width:100%; aspect-ratio:16/10; max-height:680px; background:#16213a; overflow:hidden;">
+        <iframe id="mainGameIframe" src="" allow="fullscreen; autoplay; gamepad" style="width:100%; height:100%; border:0; display:block;"></iframe>
+      </div>
+      <div style="margin-top:12px; padding:12px 16px; background:#141e33; color:#c9d8ea; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; font-family:var(--pixel); font-size:0.95rem;">
+        <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+          <span>Steer: <b style="color:var(--sun); background:rgba(0,0,0,0.3); padding:2px 6px;">A / D</b> or <b style="color:var(--sun); background:rgba(0,0,0,0.3); padding:2px 6px;">← / →</b></span>
+          <span>Accelerate: <b style="color:var(--grass); background:rgba(0,0,0,0.3); padding:2px 6px;">W / ↑</b></span>
+        </div>
+        <div style="color:#9fb3cf; font-size:0.88rem; font-family:var(--body);">
+          Doors correspond to options A, B, C, D from left to right.
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:12px; flex-wrap:wrap;">
+      <button class="btn go" data-route="play" type="button">Upload new notes for another race</button>
+      <button class="btn plain" data-route="home" type="button">Back to home</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap"><span>© 2026 GAMIFY</span><span>Made for learners aged 6–12</span></div></footer>
+
+<div class="modal-backdrop hidden" id="signupModal" role="dialog" aria-modal="true" aria-labelledby="signupTitle">
+  <div class="modal frame">
+    <button class="modal-close" data-close aria-label="Close">×</button>
+    <h2 id="signupTitle">Create your player profile</h2>
+    <p>Accounts aren't live yet, so nothing you type here is sent anywhere.</p>
+    <form id="signupForm">
+      <div class="field"><label for="signupName">Player name</label><input id="signupName" autocomplete="nickname" required minlength="2"></div>
+      <div class="field"><label for="signupEmail">Parent or guardian email</label><input id="signupEmail" type="email" autocomplete="email" required></div>
+      <div class="field"><label for="signupPassword">Password</label><input id="signupPassword" type="password" autocomplete="new-password" required minlength="8" aria-describedby="pwHint"><small id="pwHint" style="color:var(--ink-soft)">At least 8 characters</small></div>
+      <button class="btn go" type="submit" style="margin-top:20px">Create profile</button>
+      <p class="form-msg" id="signupMessage" aria-live="polite"></p>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="gameModal" role="dialog" aria-modal="true" aria-labelledby="gameTitle">
+  <div class="modal modal-game frame">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <h2 id="gameTitle" style="font-size:1.35rem;">Road Rush</h2>
+        <span class="badge frame num" id="modalActiveCode" style="padding:3px 10px; font-size:0.88rem; background:var(--sun);">Quiz Code: LIVE</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="btn small" id="modalFullscreenBtn" type="button">⛶ Fullscreen</button>
+        <a class="btn small plain" href="/game/" target="_blank" rel="noopener">New Tab ↗</a>
+        <button class="modal-close" data-close aria-label="Close">×</button>
+      </div>
+    </div>
+    <div class="game-container-wrap">
+      <iframe id="gameIframe" src="" allow="fullscreen; autoplay; gamepad" style="width:100%; height:100%; border:0; display:block;"></iframe>
+    </div>
+    <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-family:var(--pixel); font-size:0.92rem; color:var(--ink-soft);">
+      <div>Steer: <b>A/D</b> or <b>←/→</b> • Accelerate: <b>W/↑</b> • Answers A–D match lanes 1–4</div>
+      <button class="btn small plain" data-close type="button">Back to website</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const $ = (s, root = document) => root.querySelector(s);
+const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- Pixel icons (drawn from tiny bitmaps so they match the poster art) ---------- */
+const PALETTE = { K:'#16213a', W:'#ffffff', R:'#e8443a', Y:'#ffd23f', G:'#5bc236', g:'#3a8d1f', B:'#2e9bf0', b:'#dff0ff', S:'#9fb3cf', O:'#c99400' };
+const ICONS = {
+  flag:  ['KKWWKKWW','KKWWKKWW','KWWKKWWK','KWWKKWWK','K.......','K.......','K.......'],
+  heart: ['.RR.RR.','RRRRRRR','RRRRRRR','.RRRRR.','..RRR..','...R...'],
+  car:   ['...RRRRR....','..RbbRbbR...','RRRRRRRRRRRY','RRRRRRRRRRRR','.KK.....KK..','.KK.....KK..'],
+  page:  ['KKKKKKK.','KWWWWWKK','KWBBBBWK','KWWWWWWK','KWBBBBWK','KWWWWWWK','KWBBBWWK','KWWWWWWK','KKKKKKKK'],
+  book:  ['.GGGG..GGGG.','GWWWWGGWWWWG','GWKKWGGWKKWG','GWWWWGGWWWWG','GWKKWGGWKKWG','GWWWWGGWWWWG','.ggggggggggg'],
+  trophy:['YYYYYYYYY','Y.YYYYY.Y','Y.YYYYY.Y','.YYYYYYY.','..YYYYY..','...OOO...','....O....','..YYYYY..','..KKKKK..'],
+  lock:  ['.KKK.','K...K','K...K','WWWWW','WWKWW','WWKWW','WWWWW'],
+  atom:  ['...BB...','..B..B..','BBBBBBBB','B.BRRB.B','B.BRRB.B','BBBBBBBB','..B..B..','...BB...'],
+  plus:  ['..RR..','..RR..','RRRRRR','RRRRRR','..RR..','..RR..'],
+};
+function pixelSvg(name, size = 4, extraClass = '') {
+  const rows = ICONS[name]; if (!rows) return '';
+  const w = rows[0].length, h = rows.length; let rects = '';
+  rows.forEach((row, y) => [...row].forEach((c, x) => { if (PALETTE[c]) rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${PALETTE[c]}"/>`; }));
+  return `<svg class="px ${extraClass}" width="${w*size}" height="${h*size}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${rects}</svg>`;
+}
+$$('[data-icon]').forEach(el => { el.innerHTML = pixelSvg(el.dataset.icon, Number(el.dataset.size) || 4); });
+
+/* ---------- Hero typewriter (the page's one deliberate animation) ---------- */
+(function typeHero() {
+  const el = $('#heroTyped'), text = el.dataset.text;
+  el.setAttribute('aria-label', text);
+  const caret = '<span class="caret" aria-hidden="true">▼</span>';
+  if (reduceMotion) { el.innerHTML = text + caret; return; }
+  let i = 0;
+  const tick = () => { i += 1; el.textContent = text.slice(0, i); if (i < text.length) setTimeout(tick, 22); else el.innerHTML = text + caret; };
+  setTimeout(tick, 350);
+})();
+
+/* ---------- Routing ---------- */
+const ROUTES = ['home', 'play', 'learn', 'leaderboard', 'game'];
+let currentGameQuizId = null;
+
+function syncGameIframe(quizId) {
+  const iframe = $('#mainGameIframe');
+  if (!iframe) return;
+  const targetId = quizId || (pendingQuiz ? pendingQuiz.quiz_id : (quiz ? quiz.quiz_id : null));
+  const targetSrc = targetId ? `/game/?quiz=${encodeURIComponent(targetId)}` : '/game/';
+  const currentSrc = iframe.getAttribute('src') || '';
+
+  const standaloneLink = $('#gameStandaloneLink');
+  if (standaloneLink) standaloneLink.href = targetSrc;
+
+  // Refresh or initialize the iframe only when target quiz ID has changed or iframe is uninitialized
+  if (currentGameQuizId !== targetId || !currentSrc || currentSrc === 'about:blank' || currentSrc === '') {
+    currentGameQuizId = targetId;
+    iframe.src = targetSrc;
+  }
+}
+
+function showPage(name) {
+  if (!ROUTES.includes(name)) name = 'home';
+  $$('[data-page]').forEach(p => p.classList.toggle('hidden', p.dataset.page !== name));
+  $$('.nav-links a').forEach(a => { if (a.dataset.route === name) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  if (name === 'leaderboard') renderBoard();
+  if (name === 'game') {
+    const activeQuiz = pendingQuiz || quiz;
+    const code = activeQuiz ? quizCode(activeQuiz.quiz_id) : 'READY';
+    const badge = $('#gameActiveCode');
+    if (badge) badge.textContent = `Quiz Code: ${code}`;
+    syncGameIframe(activeQuiz ? activeQuiz.quiz_id : null);
+  }
+  closeMenu();
+  window.scrollTo({ top: 0 });
+}
+$$('[data-route]').forEach(el => el.addEventListener('click', e => {
+  e.preventDefault();
+  const route = el.dataset.route;
+  if (location.hash !== '#' + route) history.pushState(null, '', '#' + route);
+  showPage(route);
+}));
+window.addEventListener('popstate', () => showPage(location.hash.slice(1)));
+function closeMenu() { $('#navLinks').classList.remove('open'); $('#menuToggle').setAttribute('aria-expanded', 'false'); }
+$('#menuToggle').addEventListener('click', () => {
+  const open = $('#navLinks').classList.toggle('open');
+  $('#menuToggle').setAttribute('aria-expanded', String(open));
+});
+
+/* ---------- Modals & toast ---------- */
+let lastFocus = null;
+function openModal(id) { lastFocus = document.activeElement; const m = $(id); m.classList.remove('hidden'); $('input, button', m)?.focus(); closeMenu(); }
+function closeModals() { $$('.modal-backdrop').forEach(m => m.classList.add('hidden')); lastFocus?.focus?.(); }
+$$('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) closeModals(); }));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModals(); closeMenu(); } });
+$('#signupOpen').addEventListener('click', () => openModal('#signupModal'));
+$('#signupForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('#signupName').value.trim();
+  try { localStorage.setItem('gamify.player', name); } catch {}
+  $('#signupMessage').textContent = `Saved “${name}” on this device. Accounts aren't live yet, so nothing was sent.`;
+});
+const openGame = () => {
+  showPage('game');
+  location.hash = '#game';
+};
+$('#playRoadRush').addEventListener('click', openGame);
+$('#playRoadRushFromResult').addEventListener('click', openGame);
+$('#playRoadRushFromReady')?.addEventListener('click', openGame);
+$('#gameFullscreenTrigger')?.addEventListener('click', () => {
+  const iframe = $('#mainGameIframe');
+  if (iframe?.requestFullscreen) iframe.requestFullscreen();
+});
+$('#modalFullscreenBtn')?.addEventListener('click', () => {
+  const iframe = $('#gameIframe');
+  if (iframe?.requestFullscreen) iframe.requestFullscreen();
+});
+$$('[data-locked]').forEach(b => b.addEventListener('click', () => toast('This world is still being built.')));
+function toast(message) {
+  const el = $('#toast'); el.textContent = message; el.classList.add('show');
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+/* ---------- Backend connection ---------- */
+// Same origin when the Flask server serves this page; ?api=http://host:port overrides (e.g. LAN demo).
+const API_BASE = (() => {
+  const fromQuery = new URLSearchParams(location.search).get('api');
+  try { if (fromQuery) localStorage.setItem('gamify.api', fromQuery); } catch {}
+  let saved = null; try { saved = localStorage.getItem('gamify.api'); } catch {}
+  if (fromQuery || saved) return (fromQuery || saved).replace(/\/$/, '');
+  return location.protocol.startsWith('http') ? '' : 'http://localhost:5000';
+})();
+async function api(path, options = {}) {
+  let response;
+  try { response = await fetch(API_BASE + path, options); }
+  catch { throw new Error("Can't reach the quiz server. Make sure it's running, then try again."); }
+  let data = {}; try { data = await response.json(); } catch {}
+  if (!response.ok) { const err = new Error(data.error || `The server answered with an error (${response.status}).`); err.status = response.status; throw err; }
+  return data;
+}
+
+let server = { online: false, maxFiles: 5, maxBytes: 10 * 1024 * 1024, ocr: false, ai: false, accepted: ['.pdf', '.txt', '.md', '.png', '.jpg', '.jpeg', '.webp'] };
+async function checkServer() {
+  const el = $('#serverStatus');
+  try {
+    const h = await api('/api/health');
+    server = { online: true, maxFiles: h.max_files || 5, maxBytes: h.max_file_bytes || server.maxBytes, ocr: !!h.ocr_available, ai: !!h.ai_configured, accepted: h.accepted_extensions || server.accepted };
+    el.className = 'server ok';
+    const reads = server.ocr ? 'Reads PDFs, text, and photos' : 'Reads PDFs and text (photo scanning is off)';
+    el.lastElementChild.textContent = `Connected · ${reads}`;
+    $('#acceptHint').textContent = `${server.ocr ? 'PDF, text, or a photo of your notes' : 'PDF or text files'} · up to ${server.maxFiles} files, ${prettySize(server.maxBytes)} each`;
+  } catch {
+    server.online = false;
+    el.className = 'server down';
+    el.lastElementChild.textContent = "Quiz server offline — start it with python main.py";
+  }
+}
+
+/* ---------- Step 1: files ---------- */
+let files = [];
+const fileInput = $('#fileInput'), dropzone = $('#dropzone'), statusEl = $('#uploadStatus');
+function prettySize(bytes) { if (bytes < 1024) return bytes + ' B'; if (bytes < 1048576) return (bytes / 1024).toFixed(0) + ' KB'; return (bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0).replace(/\.0$/, '') + ' MB'; }
+const ext = name => (name.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+function setStatus(text, isError = false) { statusEl.textContent = text; statusEl.classList.toggle('error', isError); }
+function renderFiles() {
+  const list = $('#fileList'); list.innerHTML = '';
+  files.forEach((file, i) => {
+    const li = document.createElement('li');
+    const tag = document.createElement('span'); tag.className = 'file-tag'; tag.textContent = ext(file.name).slice(1).toUpperCase() || 'FILE';
+    const name = document.createElement('span'); name.className = 'file-name'; name.textContent = file.name;
+    const size = document.createElement('small'); size.textContent = prettySize(file.size) + (/^image\//.test(file.type) ? ' · will be scanned' : ''); name.append(size);
+    const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'remove'; rm.textContent = 'Remove'; rm.setAttribute('aria-label', 'Remove ' + file.name);
+    rm.addEventListener('click', () => { files.splice(i, 1); renderFiles(); });
+    li.append(tag, name, rm); list.append(li);
+  });
+  setStatus(files.length ? `${files.length} file${files.length === 1 ? '' : 's'} ready` : 'No files yet.');
+}
+function addFiles(list) {
+  const problems = [];
+  [...list].forEach(file => {
+    if (!server.accepted.includes(ext(file.name))) return problems.push(`${file.name} isn't a supported file`);
+    if (file.size > server.maxBytes) return problems.push(`${file.name} is over ${prettySize(server.maxBytes)}`);
+    if (files.some(f => f.name === file.name && f.size === file.size)) return problems.push(`${file.name} is already added`);
+    if (files.length >= server.maxFiles) return problems.push(`only ${server.maxFiles} files at a time`);
+    files.push(file);
+  });
+  renderFiles();
+  if (problems.length) setStatus('Skipped: ' + problems.join('; ') + '.', true);
+}
+fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+['dragenter', 'dragover'].forEach(t => dropzone.addEventListener(t, e => { e.preventDefault(); dropzone.classList.add('dragover'); }));
+['dragleave', 'drop'].forEach(t => dropzone.addEventListener(t, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+dropzone.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+function setStep(n) {
+  $$('#steps li').forEach((li, i) => { li.classList.toggle('active', i === n); li.classList.toggle('done', i < n); });
+}
+
+async function generate() {
+  if (!files.length) { setStatus('Add at least one file first.', true); return; }
+  pendingQuiz = null;
+  currentGameQuizId = null;
+  const iframe = $('#mainGameIframe');
+  if (iframe) iframe.src = '';
+  const needsScan = files.some(f => /^image\//.test(f.type) || ext(f.name) === '.pdf');
+  $('#loadingText').textContent = needsScan && server.ocr ? 'Reading your notes — scanned pages take a few seconds…' : 'Reading your notes…';
+  $('#loading').classList.remove('hidden'); $('#generateBtn').disabled = true; setStatus('');
+  const form = new FormData(); files.forEach(f => form.append('file', f));
+  try {
+    showReady(await api('/api/generate-questions', { method: 'POST', body: form }));
+  } catch (err) {
+    setStatus(err.message, true);
+    if (err.message.startsWith("Can't reach")) checkServer();
+  } finally {
+    $('#loading').classList.add('hidden'); $('#generateBtn').disabled = false;
+  }
+}
+$('#generateBtn').addEventListener('click', generate);
+
+/* ---------- Step 2: quiz ---------- */
+const LIVES = 3;
+let quiz = null, index = 0, lives = LIVES, xp = 0, cleared = 0, misses = 0;
+// Each browser tab answers in its own session so it never blocks the Unity game's run.
+const newSessionId = () => 'web-' + Math.random().toString(36).slice(2, 10);
+let SESSION_ID = newSessionId();
+const quizCode = id => id.slice(0, 6).toUpperCase();
+let pendingQuiz = null;
+function showReady(data) {
+  pendingQuiz = data;
+  const n = data.question_count || data.questions.length;
+  $('#readySummary').textContent = `${n} question${n === 1 ? '' : 's'} from “${data.title || 'your notes'}”.`;
+  $('#readyCode').textContent = quizCode(data.quiz_id);
+  $('#uploadCard').classList.add('hidden'); $('#resultCard').classList.add('hidden'); $('#readyCard').classList.remove('hidden');
+  setStep(1);
+  $('#readyCard').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+}
+$('#playHereBtn').addEventListener('click', () => { $('#readyCard').classList.add('hidden'); startQuiz(pendingQuiz); });
+$('#anotherQuizBtn').addEventListener('click', () => $('#newNotesBtn').click());
+
+function startQuiz(data) {
+  SESSION_ID = newSessionId(); // a replay is a fresh run
+  quiz = data; index = 0; lives = LIVES; xp = 0; cleared = 0;
+  const notes = {
+    ai: 'These questions were written from your notes.',
+    offline: 'These questions come straight from sentences in your notes. Fill in the missing word.',
+    fallback: "We couldn't find enough complete sentences in your notes, so these are general practice questions.",
+  };
+  let note = notes[data.source] || '';
+  const scanned = (data.documents || []).reduce((n, d) => n + (d.ocr_pages || 0), 0);
+  if (scanned) note += ` We scanned ${scanned} page${scanned === 1 ? '' : 's'} to read the text — if a word looks odd, the scan may have misread it.`;
+  $('#sourceNote').textContent = note;
+  $('#sourceNote').classList.toggle('warn', data.source === 'fallback');
+  $('#uploadCard').classList.add('hidden'); $('#resultCard').classList.add('hidden'); $('#quizCard').classList.remove('hidden');
+  setStep(1); renderQuestion();
+  $('#quizCard').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+}
+function renderHud() {
+  $('#qCounter').textContent = `Question ${index + 1} of ${quiz.questions.length}`;
+  $('#hearts').innerHTML = Array.from({ length: LIVES }, (_, i) => pixelSvg('heart', 4, i < lives ? '' : 'lost')).join('');
+  $('#hearts').setAttribute('aria-label', `${lives} ${lives === 1 ? 'life' : 'lives'} left`);
+  $('#xp').textContent = `${xp} XP`;
+  const progress = cleared / quiz.questions.length;
+  $('#car').style.left = `calc(${progress * 100}% - ${progress * 84}px + 8px)`;
+}
+function renderQuestion() {
+  const q = quiz.questions[index]; misses = 0;
+  renderHud();
+  $('#qTopic').textContent = q.topic ? `Topic: ${q.topic}` : '';
+  $('#questionText').textContent = q.question;
+  $('#feedback').innerHTML = ''; $('#nextBtn').classList.add('hidden');
+  const list = $('#options'); list.innerHTML = '';
+  q.options.forEach((text, i) => {
+    const li = document.createElement('li');
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn option';
+    b.innerHTML = `<span class="key">${'ABCD'[i]}</span><span></span>`; b.lastChild.textContent = text;
+    b.addEventListener('click', () => answer(i, b));
+    li.append(b); list.append(li);
+  });
+  $('#options button')?.focus({ preventScroll: true });
+}
+function showFeedback(kind, title, text) {
+  const fb = $('#feedback'); fb.innerHTML = '';
+  const v = document.createElement('p'); v.className = 'verdict ' + kind; v.textContent = title;
+  fb.append(v);
+  if (text) { const p = document.createElement('p'); p.textContent = text; fb.append(p); }
+}
+async function answer(i, button) {
+  const q = quiz.questions[index];
+  const buttons = $$('#options button'); buttons.forEach(b => b.disabled = true);
+  let result;
+  try {
+    result = await api('/api/answers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quiz_id: quiz.quiz_id, question_id: q.id, selected_index: i, session_id: SESSION_ID }) });
+  } catch (err) {
+    if (err.status === 409) result = { is_correct: true, explanation: '' };
+    else { showFeedback('bad', 'Hmm, that didn\'t go through.', err.message); buttons.forEach(b => { if (!b.classList.contains('wrong')) b.disabled = false; }); return; }
+  }
+  if (result.is_correct) {
+    button.classList.add('correct');
+    buttons.forEach(b => { if (b !== button) b.classList.add('faded'); });
+    const gained = Math.max(25, 100 - misses * 35);
+    xp += gained; cleared += 1;
+    showFeedback('good', `Gate cleared! +${gained} XP`, result.explanation);
+    renderHud();
+    const last = index === quiz.questions.length - 1;
+    $('#nextBtn').textContent = last ? 'See my results' : 'Next question';
+    $('#nextBtn').classList.remove('hidden'); $('#nextBtn').focus({ preventScroll: true });
+  } else {
+    misses += 1; lives -= 1;
+    button.classList.add('wrong');
+    renderHud();
+    if (lives <= 0) {
+      showFeedback('bad', 'Out of lives!', 'Read through your notes and try again.');
+      $('#nextBtn').textContent = 'See my results';
+      $('#nextBtn').classList.remove('hidden'); $('#nextBtn').focus({ preventScroll: true });
+      lives = 0; index = quiz.questions.length - 1; // end the run after this question
+    } else {
+      // The explanation would give the answer away, so hold it back until the gate is cleared.
+      showFeedback('bad', 'Not that one — try again.', `${lives} ${lives === 1 ? 'life' : 'lives'} left.`);
+      buttons.forEach(b => { if (!b.classList.contains('wrong')) b.disabled = false; });
+    }
+  }
+}
+$('#nextBtn').addEventListener('click', () => {
+  if (index < quiz.questions.length - 1 && lives > 0) { index += 1; renderQuestion(); }
+  else finish();
+});
+
+/* ---------- Step 3: results ---------- */
+function finish() {
+  setStep(2);
+  const total = quiz.questions.length;
+  $('#quizCard').classList.add('hidden'); $('#resultCard').classList.remove('hidden');
+  $('#resultTitle').textContent = cleared === total ? 'You crossed the finish line!' : lives <= 0 ? 'You ran out of lives' : 'Race over';
+  $('#resultXp').textContent = `${xp} XP`;
+  let best = 0; try { best = Number(localStorage.getItem('gamify.best') || 0); } catch {}
+  const isBest = xp > best;
+  if (isBest) { try { localStorage.setItem('gamify.best', String(xp)); } catch {} }
+  $('#resultSummary').textContent = `You cleared ${cleared} of ${total} gates.` + (isBest && xp > 0 ? ' That\'s your best score so far — it\'s on the leaderboard.' : '');
+  $('#resultCard').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+}
+$('#replayBtn').addEventListener('click', () => startQuiz(quiz));
+$('#newNotesBtn').addEventListener('click', () => {
+  files = []; renderFiles(); setStep(0);
+  pendingQuiz = null;
+  currentGameQuizId = null;
+  const iframe = $('#mainGameIframe');
+  if (iframe) iframe.src = '';
+  $('#resultCard').classList.add('hidden'); $('#readyCard').classList.add('hidden'); $('#uploadCard').classList.remove('hidden');
+  $('#uploadCard').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+});
+
+/* ---------- Learn ---------- */
+const MODULES = {
+  science: { title: 'Science explorers', description: 'How forces move things, and how to tell what is alive.', items: ['Predict which way a toy car rolls when you push or pull it.', 'Sort ten objects into living and non-living.', 'Answer three recap questions.'] },
+  maths: { title: 'Maths quest', description: 'Patterns and problem-solving strategies.', items: ['Finish four number patterns.', 'Choose a strategy for a two-step word problem.', 'Check your answer by working backwards.'] },
+  words: { title: 'Word wizards', description: 'Using context clues to work out new words.', items: ['Match six words to their meanings.', 'Find the clue in a short passage.', 'Write your own sentence using a new word.'] },
+};
+$$('[data-module]').forEach(b => b.addEventListener('click', () => {
+  const m = MODULES[b.dataset.module];
+  $('#moduleTitle').textContent = m.title; $('#moduleDescription').textContent = m.description;
+  const ol = $('#moduleList'); ol.innerHTML = '';
+  m.items.forEach(t => { const li = document.createElement('li'); li.textContent = t; ol.append(li); });
+  $('#moduleDetail').classList.remove('hidden');
+  $('#moduleDetail').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
+}));
+
+/* ---------- Leaderboard ---------- */
+const SAMPLE_PLAYERS = [
+  { name: 'ArcadeAce', detail: 'Road Rush · 8 races', xp: 2450 },
+  { name: 'NovaNotes', detail: '6-day streak', xp: 2180 },
+  { name: 'QuestMode', detail: 'Science explorers', xp: 1960 },
+  { name: 'MiniMeteor', detail: 'Maths quest', xp: 1720 },
+  { name: 'StarSprout', detail: 'Word wizards', xp: 1540 },
+];
+function renderBoard() {
+  let best = 0, player = ''; try { best = Number(localStorage.getItem('gamify.best') || 0); player = localStorage.getItem('gamify.player') || ''; } catch {}
+  const rows = SAMPLE_PLAYERS.map(p => ({ ...p }));
+  if (best > 0) rows.push({ name: player || 'You', detail: 'Your best quiz', xp: best, you: true });
+  rows.sort((a, b) => b.xp - a.xp);
+  const body = $('#boardBody'); body.innerHTML = '';
+  rows.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    tr.className = (i < 3 ? `top${i + 1}` : '') + (p.you ? ' you' : '');
+    tr.innerHTML = `<td class="rank num">${i + 1}</td><td class="who"><b></b><small></small></td><td class="pts num">${p.xp.toLocaleString()} XP</td>`;
+    tr.querySelector('b').textContent = p.name + (p.you && player ? ' (you)' : '');
+    tr.querySelector('small').textContent = p.detail;
+    body.append(tr);
+  });
+}
+
+/* ---------- Theme Management ---------- */
+const THEME_KEY = 'gamify.theme';
+function getPreferredTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === 'dark' || saved === 'light') return saved;
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const metaTheme = $('#metaThemeColor') || $('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.setAttribute('content', theme === 'dark' ? '#0c1322' : '#2e9bf0');
+
+  const toggle = $('#themeToggle');
+  if (toggle) {
+    const isDark = theme === 'dark';
+    const icon = $('.theme-icon', toggle);
+    const label = $('.theme-label', toggle);
+    if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+    if (label) label.textContent = isDark ? 'Light' : 'Dark';
+    toggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    toggle.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  try { localStorage.setItem(THEME_KEY, next); } catch {}
+  applyTheme(next);
+}
+
+// Initialize theme and attach toggle listener
+applyTheme(getPreferredTheme());
+$('#themeToggle')?.addEventListener('click', toggleTheme);
+
+/* ---------- Boot ---------- */
+showPage(location.hash.slice(1) || 'home');
+checkServer();
+</script>
+</body>
+</html>

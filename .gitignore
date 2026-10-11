@@ -26,3 +26,5 @@ opencode.jsonc
 Thumbs.db
 desktop.ini
 .DS_Store
+ 
+!GAMIFY_final_complete_website/game/Build/
