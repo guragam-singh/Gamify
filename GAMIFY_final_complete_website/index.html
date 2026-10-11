@@ -127,6 +127,10 @@ body *{font-variant-ligatures:none}
 .menu-toggle{display:none;border:3px solid var(--frame-border);background:var(--paper);color:var(--ink);border-radius:4px;padding:6px 10px;font-family:var(--pixel)}
 .theme-toggle{display:inline-flex;align-items:center;gap:6px;padding:.45em .8em;font-family:var(--pixel);font-size:.92rem;cursor:pointer}
 .theme-toggle .theme-icon{font-size:1.05rem;line-height:1}
+.profile-btn{display:inline-flex;align-items:center;gap:8px;padding:.42em .8em;font-family:var(--pixel);font-size:.95rem;font-weight:700;cursor:pointer}
+.profile-avatar{font-size:1.15rem;line-height:1}
+.profile-initials{display:inline-grid;place-items:center;width:22px;height:22px;background:var(--sun);color:#16213a;font-size:.78rem;font-weight:700;font-family:var(--body);border:1px solid var(--frame-border);line-height:1}
+.demo-tag{font-family:var(--pixel);font-size:.75rem;padding:2px 8px;background:var(--sun);color:#16213a;font-weight:700}
 
 /* Hero: the animated valley with an RPG dialogue box. */
 .hero{position:relative;min-height:calc(100svh - 64px);display:flex;align-items:flex-end;overflow:hidden;background:#7ec8f5}
@@ -333,7 +337,11 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
         <span class="theme-icon" aria-hidden="true">🌙</span>
         <span class="theme-label">Dark</span>
       </button>
-      <button class="btn small" id="signupOpen" type="button">Sign up</button>
+      <button class="btn small" id="signupOpen" type="button">Sign in</button>
+      <button class="btn small plain profile-btn hidden" id="profileBtn" type="button" aria-label="Open Demo Profile" title="Demo Player Profile">
+        <span class="profile-avatar" aria-hidden="true">🏎️</span>
+        <span class="profile-initials">PR</span>
+      </button>
     </nav>
   </div>
 </header>
@@ -613,15 +621,96 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 <div class="modal-backdrop hidden" id="signupModal" role="dialog" aria-modal="true" aria-labelledby="signupTitle">
   <div class="modal frame">
     <button class="modal-close" data-close aria-label="Close">×</button>
-    <h2 id="signupTitle">Create your player profile</h2>
-    <p>Accounts aren't live yet, so nothing you type here is sent anywhere.</p>
-    <form id="signupForm">
-      <div class="field"><label for="signupName">Player name</label><input id="signupName" autocomplete="nickname" required minlength="2"></div>
-      <div class="field"><label for="signupEmail">Parent or guardian email</label><input id="signupEmail" type="email" autocomplete="email" required></div>
-      <div class="field"><label for="signupPassword">Password</label><input id="signupPassword" type="password" autocomplete="new-password" required minlength="8" aria-describedby="pwHint"><small id="pwHint" style="color:var(--ink-soft)">At least 8 characters</small></div>
-      <button class="btn go" type="submit" style="margin-top:20px">Create profile</button>
-      <p class="form-msg" id="signupMessage" aria-live="polite"></p>
-    </form>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="font-size:1.5rem" aria-hidden="true">🏎️</span>
+      <h2 id="signupTitle">Player Sign In</h2>
+      <span class="demo-tag">DEMO MODE</span>
+    </div>
+    <p>Sign in with a demo account to track XP, customize your driver profile, and appear on the leaderboard.</p>
+
+    <!-- Demo ID Quick Access Card -->
+    <div class="frame" style="background:var(--sky-soft);padding:16px 18px;margin:18px 0;border:2px solid var(--frame-border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-family:var(--pixel);font-weight:700;font-size:0.85rem;color:var(--ink-soft)">HACKATHON DEMO ACCOUNT</span>
+        <span class="num" style="padding:2px 8px;font-size:0.85rem;background:var(--paper);color:var(--ink);border:1px solid var(--frame-border);font-weight:700">ID: GAMIFY-DEMO-01</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin:12px 0">
+        <div style="font-size:2rem;width:46px;height:46px;display:grid;place-items:center;background:var(--paper);border:2px solid var(--frame-border)">🏎️</div>
+        <div>
+          <strong style="font-size:1.15rem;display:block;color:var(--ink)">PixelRacer</strong>
+          <small style="color:var(--ink-soft)">Demo Pilot · Level 5 · 1,850 XP</small>
+        </div>
+      </div>
+      <button class="btn go" id="continueDemoBtn" type="button" style="width:100%;margin-top:6px">
+        Continue as Demo Player (GAMIFY-DEMO-01)
+      </button>
+    </div>
+
+    <!-- Optional custom profile input (preserves existing behavior) -->
+    <details style="margin-top:14px;font-size:0.95rem">
+      <summary style="cursor:pointer;font-family:var(--pixel);color:var(--ink-soft);font-weight:700">Or use a custom pilot name ▾</summary>
+      <form id="signupForm" style="margin-top:12px">
+        <div class="field">
+          <label for="signupName">Player name</label>
+          <input id="signupName" autocomplete="nickname" placeholder="e.g. Speedster">
+        </div>
+        <button class="btn plain" type="submit" style="margin-top:10px">Sign In with Custom Name</button>
+        <p class="form-msg" id="signupMessage" aria-live="polite"></p>
+      </form>
+    </details>
+    <p style="font-size:0.82rem;color:var(--ink-soft);margin-top:14px;border-top:1px dashed var(--line);padding-top:10px">
+      * Frontend demo for hackathon MVP. No password or backend request required.
+    </p>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+  <div class="modal frame" style="max-width:440px">
+    <button class="modal-close" data-close aria-label="Close">×</button>
+    
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div>
+        <h2 id="profileTitle">Player Profile</h2>
+        <small style="color:var(--ink-soft);font-family:var(--pixel);font-size:0.85rem">HACKATHON DEMO ACCOUNT</small>
+      </div>
+      <span class="num" id="profileDemoIdBadge" style="padding:3px 8px;font-size:0.82rem;background:var(--sun);color:#16213a;font-weight:700;border:1px solid var(--frame-border)">GAMIFY-DEMO-01</span>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--sky-soft);border:2px solid var(--frame-border);margin:12px 0 16px">
+      <div id="profileHeroAvatar" style="font-size:2.4rem;width:56px;height:56px;display:grid;place-items:center;background:var(--paper);border:2px solid var(--frame-border)">🏎️</div>
+      <div>
+        <h3 id="profileHeroName" style="font-size:1.35rem;margin:0;color:var(--ink)">PixelRacer</h3>
+        <p style="font-size:0.92rem;color:var(--ink-soft);margin-top:2px">Demo Pilot · Rank 4</p>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;margin-bottom:18px">
+      <div class="frame" style="padding:10px 6px;background:var(--paper)">
+        <small style="display:block;font-size:0.8rem;color:var(--ink-soft);font-family:var(--pixel)">XP EARNED</small>
+        <b class="num" id="profileStatXp" style="font-size:1.15rem;color:var(--ink)">1,850</b>
+      </div>
+      <div class="frame" style="padding:10px 6px;background:var(--paper)">
+        <small style="display:block;font-size:0.8rem;color:var(--ink-soft);font-family:var(--pixel)">RACES WON</small>
+        <b class="num" style="font-size:1.15rem;color:var(--grass)">3</b>
+      </div>
+      <div class="frame" style="padding:10px 6px;background:var(--paper)">
+        <small style="display:block;font-size:0.8rem;color:var(--ink-soft);font-family:var(--pixel)">QUIZZES</small>
+        <b class="num" style="font-size:1.15rem;color:var(--sky)">12</b>
+      </div>
+    </div>
+
+    <div style="background:var(--cloud);border-left:4px solid var(--sun);padding:10px 14px;font-size:0.88rem;color:var(--ink-soft);margin-bottom:20px">
+      <span>Active Session: Progress is preserved as you navigate between Play, Road Rush, Learn, and Leaderboard.</span>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px">
+      <button class="btn plain" id="signOutBtn" type="button" style="color:var(--red)">
+        Sign Out
+      </button>
+      <button class="btn go" data-close type="button">
+        Keep Playing
+      </button>
+    </div>
   </div>
 </div>
 
@@ -742,12 +831,114 @@ function openModal(id) { lastFocus = document.activeElement; const m = $(id); m.
 function closeModals() { $$('.modal-backdrop').forEach(m => m.classList.add('hidden')); lastFocus?.focus?.(); }
 $$('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) closeModals(); }));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModals(); closeMenu(); } });
-$('#signupOpen').addEventListener('click', () => openModal('#signupModal'));
-$('#signupForm').addEventListener('submit', e => {
+/* ---------- Demo Authentication Management ---------- */
+const DEMO_USER_KEY = 'gamify.demo_user';
+const DEFAULT_DEMO_PLAYER = {
+  id: 'GAMIFY-DEMO-01',
+  name: 'PixelRacer',
+  initials: 'PR',
+  avatar: '🏎️',
+  xp: 1850,
+  isDemo: true
+};
+
+function getActiveUser() {
+  try {
+    const raw = localStorage.getItem(DEMO_USER_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null;
+}
+
+function setActiveUser(user) {
+  try {
+    if (user) {
+      localStorage.setItem(DEMO_USER_KEY, JSON.stringify(user));
+      localStorage.setItem('gamify.player', user.name + (user.isDemo ? ' (Demo)' : ''));
+      if (!localStorage.getItem('gamify.best') || Number(localStorage.getItem('gamify.best')) < (user.xp || 1850)) {
+        localStorage.setItem('gamify.best', String(user.xp || 1850));
+      }
+    } else {
+      localStorage.removeItem(DEMO_USER_KEY);
+      localStorage.removeItem('gamify.player');
+      localStorage.removeItem('gamify.best');
+    }
+  } catch(e) {}
+  updateAuthUI();
+  if (typeof renderBoard === 'function') renderBoard();
+}
+
+function updateAuthUI() {
+  const user = getActiveUser();
+  const signInBtn = $('#signupOpen');
+  const profileBtn = $('#profileBtn');
+  
+  if (user) {
+    if (signInBtn) signInBtn.classList.add('hidden');
+    if (profileBtn) {
+      profileBtn.classList.remove('hidden');
+      const avatarEl = $('.profile-avatar', profileBtn);
+      const initialsEl = $('.profile-initials', profileBtn);
+      if (avatarEl) avatarEl.textContent = user.avatar || '🏎️';
+      if (initialsEl) initialsEl.textContent = user.initials || user.name.slice(0, 2).toUpperCase();
+      profileBtn.setAttribute('aria-label', `Demo Profile: ${user.name}`);
+      profileBtn.title = `Signed in as ${user.name} (${user.id})`;
+    }
+  } else {
+    if (signInBtn) signInBtn.classList.remove('hidden');
+    if (profileBtn) profileBtn.classList.add('hidden');
+  }
+}
+
+function openProfileModal() {
+  const user = getActiveUser();
+  if (!user) {
+    openModal('#signupModal');
+    return;
+  }
+  const heroName = $('#profileHeroName');
+  const heroAvatar = $('#profileHeroAvatar');
+  const badgeId = $('#profileDemoIdBadge');
+  const statXp = $('#profileStatXp');
+  
+  if (heroName) heroName.textContent = user.name;
+  if (heroAvatar) heroAvatar.textContent = user.avatar || '🏎️';
+  if (badgeId) badgeId.textContent = user.id || 'GAMIFY-DEMO-01';
+  if (statXp) statXp.textContent = (user.xp || 1850).toLocaleString();
+  
+  openModal('#profileModal');
+}
+
+$('#signupOpen')?.addEventListener('click', () => openModal('#signupModal'));
+$('#profileBtn')?.addEventListener('click', openProfileModal);
+
+$('#continueDemoBtn')?.addEventListener('click', () => {
+  setActiveUser(DEFAULT_DEMO_PLAYER);
+  closeModals();
+  toast('Signed in as PixelRacer (GAMIFY-DEMO-01)');
+});
+
+$('#signOutBtn')?.addEventListener('click', () => {
+  setActiveUser(null);
+  closeModals();
+  toast('Signed out of demo account');
+});
+
+$('#signupForm')?.addEventListener('submit', e => {
   e.preventDefault();
-  const name = $('#signupName').value.trim();
-  try { localStorage.setItem('gamify.player', name); } catch {}
-  $('#signupMessage').textContent = `Saved “${name}” on this device. Accounts aren't live yet, so nothing was sent.`;
+  const rawName = ($('#signupName')?.value || '').trim();
+  const name = rawName || 'Custom Pilot';
+  const customUser = {
+    id: 'GAMIFY-DEMO-' + Math.floor(10 + Math.random() * 90),
+    name: name,
+    initials: name.slice(0, 2).toUpperCase(),
+    avatar: '🏎️',
+    xp: 1650,
+    isDemo: true
+  };
+  setActiveUser(customUser);
+  closeModals();
+  toast(`Signed in as ${name} (${customUser.id})`);
 });
 const openGame = () => {
   showPage('game');
@@ -1074,6 +1265,7 @@ applyTheme(getPreferredTheme());
 $('#themeToggle')?.addEventListener('click', toggleTheme);
 
 /* ---------- Boot ---------- */
+updateAuthUI();
 showPage(location.hash.slice(1) || 'home');
 checkServer();
 </script>
