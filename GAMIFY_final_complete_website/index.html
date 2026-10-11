@@ -131,6 +131,28 @@ body *{font-variant-ligatures:none}
 .profile-avatar{font-size:1.15rem;line-height:1}
 .profile-initials{display:inline-grid;place-items:center;width:22px;height:22px;background:var(--sun);color:#16213a;font-size:.78rem;font-weight:700;font-family:var(--body);border:1px solid var(--frame-border);line-height:1}
 .demo-tag{font-family:var(--pixel);font-size:.75rem;padding:2px 8px;background:var(--sun);color:#16213a;font-weight:700}
+/* Profile Page */
+.profile-hero-card{display:flex;align-items:center;gap:24px;padding:26px 28px;background:var(--paper);margin-bottom:28px;flex-wrap:wrap}
+.profile-hero-avatar{font-size:3.2rem;width:80px;height:80px;display:grid;place-items:center;background:var(--sky-soft);border:3px solid var(--frame-border);flex:none}
+.profile-hero-details{flex:1;min-width:240px}
+.profile-hero-details h2{font-size:1.9rem;margin-bottom:4px}
+.xp-bar-container{background:var(--cloud);height:26px;border:2px solid var(--frame-border);position:relative;margin-top:10px}
+.xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--grass) 0%,var(--sun) 100%);transition:width .4s ease}
+.xp-bar-percent{position:absolute;inset:0;display:grid;place-items:center;font-size:.82rem;font-weight:700;color:var(--ink)}
+.profile-stats-dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:18px;margin-bottom:32px}
+.stat-card{display:flex;flex-direction:column;align-items:center;text-align:center;padding:20px 14px;background:var(--paper);gap:6px}
+.stat-icon{font-size:1.8rem;line-height:1}
+.stat-label{font-family:var(--pixel);font-size:.85rem;color:var(--ink-soft);font-weight:700;letter-spacing:.02em}
+.stat-value{font-size:1.5rem;color:var(--ink);font-weight:700}
+.stat-sub{font-size:.82rem;color:var(--ink-soft)}
+.achievements-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:16px}
+.achievement-card{display:flex;align-items:flex-start;gap:14px;padding:16px;background:var(--paper)}
+.achievement-card.locked{opacity:.65;filter:grayscale(.4)}
+.ach-icon{width:48px;height:48px;display:grid;place-items:center;font-size:1.8rem;background:var(--sky-soft);border:2px solid var(--frame-border);flex:none}
+.ach-info h4{margin:0;font-family:var(--pixel);font-size:1.15rem;color:var(--ink)}
+.ach-info p{margin:4px 0 8px;font-size:.88rem;color:var(--ink-soft);line-height:1.4}
+.ach-status{font-family:var(--pixel);font-size:.78rem;font-weight:700;color:var(--grass);background:rgba(91,194,54,.15);padding:2px 8px;display:inline-block}
+.ach-status.locked-txt{color:var(--ink-soft);background:rgba(0,0,0,.08)}
 
 /* Hero: the animated valley with an RPG dialogue box. */
 .hero{position:relative;min-height:calc(100svh - 64px);display:flex;align-items:flex-end;overflow:hidden;background:#7ec8f5}
@@ -614,6 +636,154 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
     </div>
   </div>
 </section>
+
+<!-- PROFILE -->
+<section class="page hidden" data-page="profile" aria-labelledby="profilePageTitle">
+  <div class="wrap">
+    <div class="page-head">
+      <div>
+        <h1 id="profilePageTitle">Driver Dashboard</h1>
+        <p class="lede">Track your learning progress, race stats, Spark coins, and driver achievements.</p>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn small plain" data-route="home" type="button">← Back to Dashboard</button>
+        <button class="btn small plain" id="profilePageSignOut" type="button" style="color:var(--red)">Sign Out</button>
+      </div>
+    </div>
+
+    <!-- Hero Card -->
+    <div class="profile-hero-card frame">
+      <div class="profile-hero-avatar frame" id="profilePageAvatar">🏎️</div>
+      <div class="profile-hero-details">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+          <h2 id="profilePageName" style="margin:0">PixelRacer</h2>
+          <span class="badge frame num" id="profilePageId" style="padding:2px 8px;font-size:0.85rem;background:var(--sun);color:#16213a;font-weight:700">GAMIFY-DEMO-01</span>
+          <span class="demo-tag">HACKATHON DEMO PILOT</span>
+        </div>
+        <p style="color:var(--ink-soft);font-size:0.95rem;margin:0 0 12px">Rank #4 · Level 5 Speedster · Road Rush League</p>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.88rem;color:var(--ink-soft)">
+            <span>Level 5 Progress</span>
+            <span class="num"><b id="profilePageXpText" style="color:var(--ink)">1,850 / 2,500 XP</b> (650 XP to Level 6)</span>
+          </div>
+          <div class="xp-bar-container frame">
+            <div class="xp-bar-fill" id="profilePageXpFill" style="width:74%"></div>
+            <span class="xp-bar-percent num" id="profilePageXpPercent">74%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Matrix -->
+    <div class="profile-stats-dashboard">
+      <div class="card frame stat-card">
+        <span class="stat-icon" aria-hidden="true">🪙</span>
+        <span class="stat-label">COINS</span>
+        <strong class="stat-value num" id="profilePageCoins">450</strong>
+        <small class="stat-sub">Spark Coins</small>
+      </div>
+      <div class="card frame stat-card">
+        <span class="stat-icon" aria-hidden="true">⚡</span>
+        <span class="stat-label">TOTAL XP</span>
+        <strong class="stat-value num" id="profilePageXp">1,850</strong>
+        <small class="stat-sub">Rank #4 Overall</small>
+      </div>
+      <div class="card frame stat-card">
+        <span class="stat-icon" aria-hidden="true">📝</span>
+        <span class="stat-label">QUIZZES</span>
+        <strong class="stat-value num">12</strong>
+        <small class="stat-sub">Notes Mastered</small>
+      </div>
+      <div class="card frame stat-card">
+        <span class="stat-icon" aria-hidden="true">🎯</span>
+        <span class="stat-label">ACCURACY</span>
+        <strong class="stat-value num">87.5%</strong>
+        <small class="stat-sub">42 / 48 Correct</small>
+      </div>
+      <div class="card frame stat-card">
+        <span class="stat-icon" aria-hidden="true">🏎️</span>
+        <span class="stat-label">RACES WON</span>
+        <strong class="stat-value num">3</strong>
+        <small class="stat-sub">Road Rush Track</small>
+      </div>
+      <div class="card frame stat-card">
+        <span class="stat-icon" aria-hidden="true">🔥</span>
+        <span class="stat-label">STREAK</span>
+        <strong class="stat-value num">5 Days</strong>
+        <small class="stat-sub">Active Learner</small>
+      </div>
+    </div>
+
+    <!-- Achievements -->
+    <div class="card frame" style="margin-top:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:8px">
+        <div>
+          <h2 style="font-size:1.55rem">Driver Achievements</h2>
+          <p class="lede" style="margin-top:4px">Earn badges by completing quizzes, setting high scores, and driving clean laps.</p>
+        </div>
+        <span class="badge frame num" style="padding:4px 10px;background:var(--grass);color:#fff;font-weight:700">4 / 6 UNLOCKED</span>
+      </div>
+      <div class="achievements-grid">
+        <div class="achievement-card frame">
+          <div class="ach-icon" aria-hidden="true">🏎️</div>
+          <div class="ach-info">
+            <h4>Speed Demon</h4>
+            <p>Finish a Road Rush run with all 3 hearts remaining.</p>
+            <span class="ach-status">✓ UNLOCKED</span>
+          </div>
+        </div>
+        <div class="achievement-card frame">
+          <div class="ach-icon" aria-hidden="true">🎯</div>
+          <div class="ach-info">
+            <h4>Bullseye</h4>
+            <p>Score 100% on any AI-generated note quiz.</p>
+            <span class="ach-status">✓ UNLOCKED</span>
+          </div>
+        </div>
+        <div class="achievement-card frame">
+          <div class="ach-icon" aria-hidden="true">⚡</div>
+          <div class="ach-info">
+            <h4>Quick Study</h4>
+            <p>Upload notes and launch a quiz in under 60 seconds.</p>
+            <span class="ach-status">✓ UNLOCKED</span>
+          </div>
+        </div>
+        <div class="achievement-card frame">
+          <div class="ach-icon" aria-hidden="true">🌙</div>
+          <div class="ach-info">
+            <h4>Night Racer</h4>
+            <p>Play a round in Dark Mode and ram 5 obstacle gates.</p>
+            <span class="ach-status">✓ UNLOCKED</span>
+          </div>
+        </div>
+        <div class="achievement-card frame locked">
+          <div class="ach-icon" aria-hidden="true">📚</div>
+          <div class="ach-info">
+            <h4>Brain Booster</h4>
+            <p>Study materials from 3 distinct subjects in one week.</p>
+            <span class="ach-status locked-txt">🔒 IN PROGRESS (2/3)</span>
+          </div>
+        </div>
+        <div class="achievement-card frame locked">
+          <div class="ach-icon" aria-hidden="true">👑</div>
+          <div class="ach-info">
+            <h4>Top Podium</h4>
+            <p>Reach Rank #1 on the weekly GAMIFY leaderboard.</p>
+            <span class="ach-status locked-txt">🔒 LOCKED</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Navigation Actions -->
+    <div style="margin-top:28px;display:flex;gap:12px;flex-wrap:wrap">
+      <button class="btn go" data-route="play" type="button">Upload Notes & Quiz</button>
+      <button class="btn plain" data-route="game" type="button">Play Road Rush 🏎️</button>
+      <button class="btn plain" data-route="leaderboard" type="button">View Leaderboard 🏆</button>
+      <button class="btn plain" data-route="home" type="button">← Back to Dashboard</button>
+    </div>
+  </div>
+</section>
 </main>
 
 <footer><div class="wrap"><span>© 2026 GAMIFY</span><span>Made for learners aged 6–12</span></div></footer>
@@ -707,8 +877,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
       <button class="btn plain" id="signOutBtn" type="button" style="color:var(--red)">
         Sign Out
       </button>
-      <button class="btn go" data-close type="button">
-        Keep Playing
+      <button class="btn go" id="modalViewProfileBtn" type="button">
+        Open Full Profile Page ↗
       </button>
     </div>
   </div>
@@ -777,7 +947,7 @@ $$('[data-icon]').forEach(el => { el.innerHTML = pixelSvg(el.dataset.icon, Numbe
 })();
 
 /* ---------- Routing ---------- */
-const ROUTES = ['home', 'play', 'learn', 'leaderboard', 'game'];
+const ROUTES = ['home', 'play', 'learn', 'leaderboard', 'game', 'profile'];
 let currentGameQuizId = null;
 
 function syncGameIframe(quizId) {
@@ -801,6 +971,7 @@ function showPage(name) {
   if (!ROUTES.includes(name)) name = 'home';
   $$('[data-page]').forEach(p => p.classList.toggle('hidden', p.dataset.page !== name));
   $$('.nav-links a').forEach(a => { if (a.dataset.route === name) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  if (name === 'profile') renderProfilePage();
   if (name === 'leaderboard') renderBoard();
   if (name === 'game') {
     const activeQuiz = pendingQuiz || quiz;
@@ -909,8 +1080,52 @@ function openProfileModal() {
   openModal('#profileModal');
 }
 
+function renderProfilePage() {
+  const user = getActiveUser() || DEFAULT_DEMO_PLAYER;
+  const nameEl = $('#profilePageName');
+  const idEl = $('#profilePageId');
+  const avatarEl = $('#profilePageAvatar');
+  const xpValEl = $('#profilePageXp');
+  const xpTextEl = $('#profilePageXpText');
+  const xpFillEl = $('#profilePageXpFill');
+  const xpPercentEl = $('#profilePageXpPercent');
+  const coinsEl = $('#profilePageCoins');
+
+  const xp = user.xp || 1850;
+  const nextLevelXp = 2500;
+  const pct = Math.min(100, Math.round((xp / nextLevelXp) * 100));
+
+  if (nameEl) nameEl.textContent = user.name;
+  if (idEl) idEl.textContent = user.id || 'GAMIFY-DEMO-01';
+  if (avatarEl) avatarEl.textContent = user.avatar || '🏎️';
+  if (xpValEl) xpValEl.textContent = xp.toLocaleString() + ' XP';
+  if (xpTextEl) xpTextEl.textContent = `${xp.toLocaleString()} / ${nextLevelXp.toLocaleString()} XP`;
+  if (xpFillEl) xpFillEl.style.width = `${pct}%`;
+  if (xpPercentEl) xpPercentEl.textContent = `${pct}%`;
+  if (coinsEl) coinsEl.textContent = (user.coins || 450).toLocaleString();
+}
+
+function goToProfilePage() {
+  const user = getActiveUser();
+  if (!user) {
+    openModal('#signupModal');
+    return;
+  }
+  closeModals();
+  if (location.hash !== '#profile') history.pushState(null, '', '#profile');
+  showPage('profile');
+}
+
 $('#signupOpen')?.addEventListener('click', () => openModal('#signupModal'));
-$('#profileBtn')?.addEventListener('click', openProfileModal);
+$('#profileBtn')?.addEventListener('click', goToProfilePage);
+$('#modalViewProfileBtn')?.addEventListener('click', goToProfilePage);
+
+$('#profilePageSignOut')?.addEventListener('click', () => {
+  setActiveUser(null);
+  if (location.hash !== '#home') history.pushState(null, '', '#home');
+  showPage('home');
+  toast('Signed out of demo account');
+});
 
 $('#continueDemoBtn')?.addEventListener('click', () => {
   setActiveUser(DEFAULT_DEMO_PLAYER);
