@@ -64,10 +64,17 @@ namespace Gamify.Racing
                 gameUI.SetHudVisible(false);
             }
 
-            questionManager.Initialize(() =>
+            if (questionManager != null && questionManager.IsLoaded && questionManager.Questions != null && questionManager.Questions.Count > 0)
             {
                 OnQuestionsLoaded();
-            });
+            }
+            else if (questionManager != null)
+            {
+                questionManager.Initialize(() =>
+                {
+                    OnQuestionsLoaded();
+                });
+            }
         }
 
         private void OnQuestionsLoaded()

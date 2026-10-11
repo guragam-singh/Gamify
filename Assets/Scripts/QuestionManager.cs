@@ -49,6 +49,8 @@ namespace Gamify.Racing
 
         public bool IsLoaded { get; private set; } = false;
         private bool _isRunInProgress = false;
+        private bool _isFallbackActive = false;
+        public bool IsFallbackActive => _isFallbackActive;
 
         private void Awake()
         {
@@ -72,6 +74,7 @@ namespace Gamify.Racing
                 quizRun = GetComponent<QuizRun>() ?? gameObject.AddComponent<QuizRun>();
             }
 
+            fetchFromBackendOnStart = true;
             if (!string.IsNullOrEmpty(backendBaseUrl))
             {
                 apiClient.BaseUrl = backendBaseUrl;
@@ -97,13 +100,29 @@ namespace Gamify.Racing
 
         private void HandleNewQuizAvailable(Quiz quiz)
         {
-            if (_isRunInProgress) return; // Never swap questions mid-run per spec 4.2
+            if (quiz == null || string.IsNullOrEmpty(quiz.quiz_id)) return;
+            if (CurrentQuiz != null && CurrentQuiz.quiz_id == quiz.quiz_id) return;
+
+            // If an actual backend quiz is currently being played, do not interrupt mid-run per spec 4.2
+            if (_isRunInProgress && !_isFallbackActive && CurrentQuiz != null && !string.IsNullOrEmpty(CurrentQuiz.quiz_id))
+            {
+                Debug.Log($"[Gamify] Active run already using quiz {CurrentQuiz.quiz_id}; deferring new quiz {quiz.quiz_id}.");
+                return;
+            }
 
             Debug.Log($"[Gamify] New quiz available from backend: {quiz.title} (Code: {quiz.ShortCode}, Questions: {quiz.question_count})");
             LoadQuizData(quiz);
+            bool wasFallback = _isFallbackActive;
+            _isFallbackActive = false;
             ServerStatus = $"Quiz Ready: [{quiz.ShortCode}] {quiz.title}";
             OnServerStatusChanged?.Invoke(ServerStatus);
             OnQuizLoaded?.Invoke(quiz);
+
+            // If we were idling or running fallback questions, safely restart game with the real quiz
+            if (GameManager.Instance != null && (wasFallback || CurrentQuiz == null || _isRunInProgress))
+            {
+                GameManager.Instance.RestartGame();
+            }
         }
 
         private void HandleWaitingForUpload()
@@ -124,24 +143,39 @@ namespace Gamify.Racing
             StartCoroutine(LoadQuestionsRoutine(onComplete));
         }
 
+        private string GetTargetQuizIdFromUrl()
+        {
+            string url = Application.absoluteURL;
+            if (string.IsNullOrEmpty(url)) return null;
+            int idx = url.IndexOf("quiz=", StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) return null;
+            string id = url.Substring(idx + 5);
+            int ampersand = id.IndexOf('&');
+            if (ampersand >= 0) id = id.Substring(0, ampersand);
+            return id.Trim();
+        }
+
         private IEnumerator LoadQuestionsRoutine(Action onComplete)
         {
             IsLoaded = false;
             _questions.Clear();
             CurrentQuiz = null;
+            _isFallbackActive = false;
 
-            if (fetchFromBackendOnStart && apiClient != null)
+            if (apiClient != null)
             {
                 ServerStatus = "Checking quiz server...";
                 OnServerStatusChanged?.Invoke(ServerStatus);
 
+                string targetQuizId = GetTargetQuizIdFromUrl();
                 bool responded = false;
-                yield return apiClient.GetLatestQuiz(r =>
+                Action<ApiResponse<Quiz>> onResponse = r =>
                 {
                     responded = true;
-                    if (r.Ok && r.Data != null)
+                    if (r.Ok && r.Data != null && r.Data.questions != null && r.Data.questions.Length > 0)
                     {
                         LoadQuizData(r.Data);
+                        _isFallbackActive = false;
                         ServerStatus = $"Connected: [{r.Data.ShortCode}] {r.Data.title}";
                         Debug.Log($"[Gamify] Loaded {r.Data.questions.Length} questions from backend! Code: {r.Data.ShortCode}");
                     }
@@ -155,7 +189,32 @@ namespace Gamify.Racing
                         ServerStatus = $"Server offline: {r.Error}";
                         Debug.LogWarning($"[Gamify] Backend unavailable: {r.Error}");
                     }
-                });
+                };
+
+                if (!string.IsNullOrEmpty(targetQuizId))
+                {
+                    if (poller != null) poller.targetQuizId = targetQuizId;
+                    int attempts = 0;
+                    const int maxAttempts = 5;
+                    while (attempts < maxAttempts && _questions.Count == 0)
+                    {
+                        attempts++;
+                        ServerStatus = attempts == 1 ? "Loading quiz..." : $"Loading quiz (attempt {attempts}/{maxAttempts})...";
+                        OnServerStatusChanged?.Invoke(ServerStatus);
+
+                        yield return apiClient.GetQuiz(targetQuizId, onResponse);
+                        if (_questions.Count > 0) break;
+
+                        if (attempts < maxAttempts)
+                        {
+                            yield return new WaitForSeconds(1f);
+                        }
+                    }
+                }
+                else
+                {
+                    yield return apiClient.GetLatestQuiz(onResponse);
+                }
 
                 if (!responded)
                 {
@@ -164,40 +223,42 @@ namespace Gamify.Racing
                 OnServerStatusChanged?.Invoke(ServerStatus);
             }
 
-            // Fallback 1: Local Resources
+            // Fallback: only used if backend had no questions
             if (_questions.Count == 0)
             {
+                _isFallbackActive = true;
+                // Fallback 1: Local Resources
                 TextAsset asset = Resources.Load<TextAsset>(localResourceName);
                 if (asset != null && !string.IsNullOrEmpty(asset.text))
                 {
                     _questions = QuestionParser.ParseJson(asset.text);
                     if (_questions.Count > 0)
                     {
-                        Debug.Log($"[Gamify] Loaded {_questions.Count} questions from Resources/{localResourceName}.");
+                        Debug.Log($"[Gamify] Loaded {_questions.Count} fallback questions from Resources/{localResourceName}.");
                     }
                 }
-            }
 
-            // Fallback 2: StreamingAssets
-            if (_questions.Count == 0)
-            {
-                string streamingPath = Path.Combine(Application.streamingAssetsPath, "questions.json");
-                if (File.Exists(streamingPath))
+                // Fallback 2: StreamingAssets
+                if (_questions.Count == 0)
                 {
-                    string json = File.ReadAllText(streamingPath);
-                    _questions = QuestionParser.ParseJson(json);
-                    if (_questions.Count > 0)
+                    string streamingPath = Path.Combine(Application.streamingAssetsPath, "questions.json");
+                    if (File.Exists(streamingPath))
                     {
-                        Debug.Log($"[Gamify] Loaded {_questions.Count} questions from StreamingAssets.");
+                        string json = File.ReadAllText(streamingPath);
+                        _questions = QuestionParser.ParseJson(json);
+                        if (_questions.Count > 0)
+                        {
+                            Debug.Log($"[Gamify] Loaded {_questions.Count} questions from StreamingAssets.");
+                        }
                     }
                 }
-            }
 
-            // Fallback 3: Built-in hardcoded fallback so gameplay never fails
-            if (_questions.Count == 0)
-            {
-                Debug.LogWarning("[Gamify] Using built-in fallback questions.");
-                _questions = GetBuiltinFallbackQuestions();
+                // Fallback 3: Built-in hardcoded fallback so gameplay never fails
+                if (_questions.Count == 0)
+                {
+                    Debug.LogWarning("[Gamify] Using built-in fallback questions.");
+                    _questions = GetBuiltinFallbackQuestions();
+                }
             }
 
             ResetGameStats();
@@ -227,7 +288,8 @@ namespace Gamify.Racing
             }
             if (poller != null)
             {
-                poller.enabled = false;
+                // Only disable poller if playing a real backend quiz; if running fallback, keep poller active to receive uploaded quiz
+                poller.enabled = _isFallbackActive;
             }
             ResetGameStats();
         }

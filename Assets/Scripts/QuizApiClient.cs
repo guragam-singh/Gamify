@@ -14,9 +14,18 @@ namespace Gamify
         [SerializeField] private string defaultBaseUrl = "http://127.0.0.1:5050";
         [SerializeField] private int timeoutSeconds = 10;
 
+        private string GetEffectiveDefaultBaseUrl()
+        {
+            if (Application.platform == RuntimePlatform.WebGLPlayer)
+            {
+                return "";
+            }
+            return defaultBaseUrl;
+        }
+
         public string BaseUrl
         {
-            get => PlayerPrefs.GetString(BaseUrlPrefsKey, defaultBaseUrl).TrimEnd('/');
+            get => PlayerPrefs.GetString(BaseUrlPrefsKey, GetEffectiveDefaultBaseUrl()).TrimEnd('/');
             set { PlayerPrefs.SetString(BaseUrlPrefsKey, value.Trim().TrimEnd('/')); PlayerPrefs.Save(); }
         }
 

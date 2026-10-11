@@ -65675,7 +65675,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Gamify.Racing.QuestionManager
   backendBaseUrl: http://127.0.0.1:5050
-  fetchFromBackendOnStart: 0
+  fetchFromBackendOnStart: 1
   requestTimeoutSeconds: 2.5
   apiClient: {fileID: 0}
   poller: {fileID: 0}

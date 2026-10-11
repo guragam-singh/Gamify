@@ -10,6 +10,8 @@ namespace Gamify
         [SerializeField] private QuizApiClient api;
         [SerializeField] private float intervalSeconds = 3f;
 
+        [NonSerialized] public string targetQuizId = null;
+
         public Quiz Current { get; private set; }
         public event Action<Quiz> NewQuizAvailable;   // fires when quiz_id changes
         public event Action WaitingForUpload;          // 404: nothing generated yet
@@ -37,9 +39,9 @@ namespace Gamify
             {
                 if (api != null)
                 {
-                    yield return api.GetLatestQuiz(r =>
+                    Action<ApiResponse<Quiz>> onResponse = r =>
                     {
-                        if (r.Ok)
+                        if (r.Ok && r.Data != null)
                         {
                             if (Current == null || Current.quiz_id != r.Data.quiz_id)
                             {
@@ -49,8 +51,17 @@ namespace Gamify
                         }
                         else if (r.StatusCode == 404) WaitingForUpload?.Invoke();
                         else if (r.NetworkError) ServerUnreachable?.Invoke(r.Error);
-                        else Debug.LogWarning($"[Gamify] latest quiz failed: {r.StatusCode} {r.Error}");
-                    });
+                        else Debug.LogWarning($"[Gamify] poller failed: {r.StatusCode} {r.Error}");
+                    };
+
+                    if (!string.IsNullOrEmpty(targetQuizId))
+                    {
+                        yield return api.GetQuiz(targetQuizId, onResponse);
+                    }
+                    else
+                    {
+                        yield return api.GetLatestQuiz(onResponse);
+                    }
                 }
                 yield return wait;
             }
