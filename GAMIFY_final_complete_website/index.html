@@ -263,7 +263,13 @@ body *{font-variant-ligatures:none}
 .results .actions{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:24px}
 
 /* Games */
-.games{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-top:24px;align-items:stretch}
+.games{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:28px;margin-top:24px;align-items:stretch}
+.learn-topic-tab{font-family:var(--pixel);font-size:.95rem;padding:.45em .9em;cursor:pointer;transition:transform .08s}
+.learn-topic-tab.active{--face:var(--grass);color:#fff;text-shadow:0 2px 0 var(--grass-dark)}
+.learn-track{position:relative;height:52px;margin:14px 0 22px;background:#4b5160;border-top:5px solid #fff;border-bottom:5px solid #fff;overflow:hidden}
+.learn-track:before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;background:linear-gradient(90deg,#fff 0 20px,transparent 20px 40px) 0 0/40px 4px repeat-x}
+.learn-track .finish{position:absolute;right:0;top:0;bottom:0;width:24px;background:repeating-conic-gradient(#fff 0 25%,var(--ink) 0 50%) 0 0/12px 12px}
+.learn-track .car{position:absolute;top:50%;left:8px;transform:translateY(-50%);transition:left .45s cubic-bezier(.3,1.3,.5,1)}
 .game{display:flex;flex-direction:column;height:100%}
 .game .poster{position:relative;aspect-ratio:2/3;overflow:hidden;background:#0b111e}
 .game .poster img{width:100%;height:100%;object-fit:cover}
@@ -410,6 +416,87 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
           <span class="go-label">View rankings</span>
         </button>
       </div>
+
+      <!-- MAIN DASHBOARD LEARN SECTION -->
+      <section class="card frame learn-dashboard-section" id="dashLearnSection" style="margin-top:48px;padding:32px 28px;background:var(--paper);" aria-labelledby="dashLearnTitle">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap;gap:16px;">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span class="badge frame num" style="background:var(--grass);color:#fff;font-weight:700">LEARN & PRACTICE</span>
+              <span style="font-family:var(--pixel);color:var(--ink-soft);font-size:0.9rem">SAMPLE MCQ WARM-UP</span>
+            </div>
+            <h2 id="dashLearnTitle" style="font-size:1.8rem">Interactive Quick-Learn</h2>
+            <p class="lede" style="margin-top:4px">Practice sample multiple-choice questions with instant explanations and progress tracking before jumping onto the track.</p>
+          </div>
+          <div class="topic-tabs" style="display:flex;gap:8px;flex-wrap:wrap" id="learnTopicTabs">
+            <button class="btn small learn-topic-tab active" data-topic="science" type="button">🔬 Science</button>
+            <button class="btn small plain learn-topic-tab" data-topic="maths" type="button">🔢 Maths</button>
+            <button class="btn small plain learn-topic-tab" data-topic="words" type="button">📖 Words</button>
+          </div>
+        </div>
+
+        <!-- Practice Area -->
+        <div id="learnPracticeContainer" style="background:var(--cloud);border:2px solid var(--frame-border);padding:22px;position:relative;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <span class="q-topic" id="dashLearnTopicBadge" style="font-size:0.95rem;font-weight:700;color:var(--ink);">Topic: Science Explorers · Forces & Friction</span>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span class="badge frame num" id="dashLearnProgress" style="background:var(--sun);color:#16213a;font-weight:700">Question 1 of 3</span>
+              <span class="xp frame num" id="dashLearnXp">+0 XP</span>
+            </div>
+          </div>
+
+          <!-- Mini Track Progress Gauge -->
+          <div class="learn-track frame" id="dashLearnTrack">
+            <div class="finish"></div>
+            <div class="car" id="dashLearnCar" style="left:8px">
+              <svg class="px" width="36" height="18" viewBox="0 0 18 9" aria-hidden="true">
+                <rect x="2" y="3" width="14" height="4" fill="#ffd23f"/>
+                <rect x="5" y="1" width="8" height="3" fill="#2e9bf0"/>
+                <rect x="3" y="6" width="3" height="3" fill="#16213a"/>
+                <rect x="12" y="6" width="3" height="3" fill="#16213a"/>
+                <rect x="0" y="4" width="2" height="2" fill="#e8443a"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="q-text" id="dashLearnQuestion" style="font-size:1.25rem;line-height:1.45;color:var(--ink);margin:12px 0 16px;">
+            When you push a toy car across carpet versus smooth tile, why does it slow down faster on the carpet?
+          </div>
+
+          <ul class="options" id="dashLearnOptions" style="list-style:none;padding:0;margin:0 0 16px;">
+            <!-- Options populated dynamically -->
+          </ul>
+
+          <div class="feedback" id="dashLearnFeedback" style="min-height:1.5em;margin-top:14px;">
+            <div class="verdict" id="dashLearnVerdict"></div>
+            <p id="dashLearnExplanation" style="color:var(--ink-soft);font-size:0.98rem;margin-top:4px;"></p>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;flex-wrap:wrap;gap:10px;">
+            <span style="font-size:0.9rem;color:var(--ink-soft)" id="dashLearnHint">Select an answer to see instant feedback and step-by-step reasoning.</span>
+            <button class="btn go hidden" id="dashLearnNextBtn" type="button">Next Question →</button>
+          </div>
+        </div>
+
+        <!-- AI Analyzed Illustrations Feature Teaser Card -->
+        <div class="card frame illustration-teaser-card" style="margin-top:28px;background:var(--sky-soft);border:2px dashed var(--sky);padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:18px;max-width:760px;">
+            <div style="width:56px;height:56px;font-size:2.5rem;display:grid;place-items:center;background:var(--paper);border:2px solid var(--frame-border);flex:none;">🎨</div>
+            <div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap">
+                <h3 style="margin:0;font-size:1.3rem;color:var(--ink);">AI Analyzed Illustrations</h3>
+                <span class="badge frame num" style="background:var(--sun);color:#16213a;font-weight:700;font-size:0.75rem;">ROADMAP TEASER</span>
+              </div>
+              <p style="color:var(--ink-soft);font-size:0.95rem;line-height:1.5;margin:0">
+                Transform uploaded notes into vivid conceptual diagrams, visual flashcards, and mnemonic illustrations. Multimodal AI automatically analyzes complex topics to provide intuitive visual explanations beside every question.
+              </p>
+            </div>
+          </div>
+          <button class="btn plain small" type="button" data-locked title="Coming soon in future release">
+            <span style="font-family:var(--pixel);font-weight:700;">COMING SOON</span> 🔒
+          </button>
+        </div>
+      </section>
     </div>
     <div class="ground" aria-hidden="true"></div>
   </section>
@@ -534,6 +621,29 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
             <button class="btn plain" type="button" data-locked>Not ready yet</button>
           </div>
         </article>
+        <article class="game frame locked">
+          <div class="poster" style="background:#0f172a;display:grid;place-items:center;aspect-ratio:2/3;position:relative;">
+            <div style="text-align:center;padding:16px;">
+              <span style="font-size:3.6rem;display:block;">🎨</span>
+              <span class="badge frame num" style="background:var(--sun);color:#16213a;font-weight:700;font-size:0.82rem;margin-top:8px;display:inline-block">AI VISION</span>
+            </div>
+            <span class="lock"><span data-icon="lock" data-size="3"></span>Coming soon</span>
+          </div>
+          <div class="info">
+            <span class="genre">Visual Learning</span>
+            <h3>AI Analyzed Illustrations</h3>
+            <p>Future AI-generated, topic-specific illustrations will analyze uploaded study notes to produce conceptual pixel diagrams, visual memory aids, and interactive flashcards that make complex concepts visual and engaging before you hit the track.</p>
+            <button class="btn plain" type="button" data-locked>COMING SOON</button>
+          </div>
+        </article>
+      </div>
+
+      <!-- Scalability & Visual AI Roadmap Explanation -->
+      <div class="source-note frame" style="margin-top:28px;background:var(--paper);border-left:5px solid var(--sun);padding:16px 20px;">
+        <strong style="color:var(--ink);font-family:var(--pixel);font-size:1.1rem;display:block;margin-bottom:6px;">🚀 Scalability & Visual AI Roadmap:</strong>
+        <span style="color:var(--ink-soft);font-size:0.96rem;line-height:1.55;display:block;">
+          <strong>How future AI-generated, topic-specific illustrations make learning more visual and engaging:</strong> GAMIFY's platform roadmap introduces multimodal vision pipelines that parse uploaded notes, worksheets, and textbooks into custom, topic-specific pixel illustrations. Visual learners will see conceptual anatomy diagrams, geometry proofs, and animated physics forces rendered directly beside question gates—drastically boosting retention and confidence before answering.
+        </span>
       </div>
       <!-- Unity integration point: replace openGame() with the hosted WebGL build URL when it exists. -->
     </section>
@@ -576,8 +686,30 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
       <h2 id="moduleTitle"></h2>
       <p class="lede" id="moduleDescription"></p>
       <ol id="moduleList"></ol>
-      <button class="btn go" data-route="play" type="button">Quiz me on this</button>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;">
+        <button class="btn go" id="startInteractivePracticeBtn" type="button">Practice Sample MCQs</button>
+        <button class="btn plain" data-route="play" type="button">Quiz me on my notes</button>
+      </div>
     </section>
+
+    <!-- Visual AI Roadmap Teaser on Learn Page -->
+    <div class="card frame" style="margin-top:40px;background:var(--sky-soft);border:2px dashed var(--sky);padding:24px 26px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:18px;max-width:760px;">
+        <div style="width:56px;height:56px;font-size:2.5rem;display:grid;place-items:center;background:var(--paper);border:2px solid var(--frame-border);flex:none;">🎨</div>
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap">
+            <h3 style="margin:0;font-size:1.3rem;color:var(--ink);">AI Analyzed Illustrations</h3>
+            <span class="badge frame num" style="background:var(--sun);color:#16213a;font-weight:700;font-size:0.75rem;">COMING SOON</span>
+          </div>
+          <p style="color:var(--ink-soft);font-size:0.95rem;line-height:1.5;margin:0">
+            Topic-specific illustrations generated straight from your study materials. See concepts visually before testing your speed on the track.
+          </p>
+        </div>
+      </div>
+      <button class="btn plain small" type="button" data-locked title="Coming soon">
+        <span style="font-family:var(--pixel);font-weight:700;">COMING SOON</span> 🔒
+      </button>
+    </div>
   </div>
 </section>
 
@@ -990,6 +1122,7 @@ $$('[data-route]').forEach(el => el.addEventListener('click', e => {
   showPage(route);
 }));
 window.addEventListener('popstate', () => showPage(location.hash.slice(1)));
+window.addEventListener('hashchange', () => showPage(location.hash.slice(1)));
 function closeMenu() { $('#navLinks').classList.remove('open'); $('#menuToggle').setAttribute('aria-expanded', 'false'); }
 $('#menuToggle').addEventListener('click', () => {
   const open = $('#navLinks').classList.toggle('open');
@@ -1404,20 +1537,306 @@ $('#newNotesBtn').addEventListener('click', () => {
   $('#uploadCard').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
 });
 
-/* ---------- Learn ---------- */
+/* ---------- Interactive Learn & Practice Engine ---------- */
 const MODULES = {
   science: { title: 'Science explorers', description: 'How forces move things, and how to tell what is alive.', items: ['Predict which way a toy car rolls when you push or pull it.', 'Sort ten objects into living and non-living.', 'Answer three recap questions.'] },
   maths: { title: 'Maths quest', description: 'Patterns and problem-solving strategies.', items: ['Finish four number patterns.', 'Choose a strategy for a two-step word problem.', 'Check your answer by working backwards.'] },
   words: { title: 'Word wizards', description: 'Using context clues to work out new words.', items: ['Match six words to their meanings.', 'Find the clue in a short passage.', 'Write your own sentence using a new word.'] },
 };
+
+const LEARN_TOPICS = {
+  science: {
+    title: 'Science Explorers',
+    badge: 'Forces, Friction & Living Things',
+    questions: [
+      {
+        q: 'When you push a toy car across carpet versus smooth tile, why does it slow down faster on the carpet?',
+        options: [
+          'Friction between the wheels and carpet is higher',
+          'Gravity pulls harder on the carpet',
+          'The car becomes heavier on carpet',
+          'Carpet creates magnetic resistance'
+        ],
+        answer: 0,
+        explanation: 'Friction is the contact force between rough surfaces that resists sliding motion, slowing the car down faster on carpet.'
+      },
+      {
+        q: 'Which of these is a non-living object whose motion is changed only by external forces?',
+        options: [
+          'A sunflower turning toward the sun',
+          'A bicycle rolling downhill due to gravity',
+          'A cat leaping onto a counter',
+          'An apple ripening on a branch'
+        ],
+        answer: 1,
+        explanation: 'The bicycle is non-living; it only moves because external gravity pulls it downhill.'
+      },
+      {
+        q: 'What invisible attractive force pulls an apple down toward the ground when it falls from a branch?',
+        options: [
+          'Electrostatic attraction',
+          'Surface friction',
+          'Gravity',
+          'Air resistance'
+        ],
+        answer: 2,
+        explanation: 'Gravity is the mutual attractive force between masses that pulls objects toward Earth\'s center.'
+      }
+    ]
+  },
+  maths: {
+    title: 'Maths Quest',
+    badge: 'Patterns, Sequences & Word Problems',
+    questions: [
+      {
+        q: 'Look at the number sequence: 3, 7, 11, 15, __. What number comes next?',
+        options: ['18', '19', '20', '21'],
+        answer: 1,
+        explanation: 'The pattern increases by 4 each step (+4): 15 + 4 = 19.'
+      },
+      {
+        q: 'Leo has 24 stickers and divides them equally among 4 friends. Which operation gives each friend\'s share?',
+        options: [
+          '24 ÷ 4 = 6 stickers',
+          '24 - 4 = 20 stickers',
+          '24 × 4 = 96 stickers',
+          '24 + 4 = 28 stickers'
+        ],
+        answer: 0,
+        explanation: 'Sharing an amount into equal groups is division: 24 divided by 4 equals 6.'
+      },
+      {
+        q: 'A toy race car costs $12. If Sam has a $5 discount coupon, how much does he pay?',
+        options: ['$17', '$7', '$8', '$60'],
+        answer: 1,
+        explanation: 'A discount subtracts from the original price: $12 - $5 = $7.'
+      }
+    ]
+  },
+  words: {
+    title: 'Word Wizards',
+    badge: 'Context Clues & Vocabulary',
+    questions: [
+      {
+        q: 'In the sentence: "The arctic fox\'s dense fur is impervious to icy gales, keeping it warm in blizzards", what does impervious mean?',
+        options: [
+          'Unable to be affected or penetrated',
+          'Very bright and colourful',
+          'Lightweight and thin',
+          'Harmful to other animals'
+        ],
+        answer: 0,
+        explanation: 'Context clues ("keeping it warm in blizzards") tell us the fur prevents the icy wind from penetrating.'
+      },
+      {
+        q: 'Which word describes someone who loves and collects books?',
+        options: [
+          'Astronomer',
+          'Bibliophile',
+          'Cartographer',
+          'Botanist'
+        ],
+        answer: 1,
+        explanation: 'The Greek root "biblio" means book, and "-phile" means a lover of something.'
+      },
+      {
+        q: 'What does the word "ephemeral" describe in: "Rainbows are ephemeral, vanishing within minutes"?',
+        options: [
+          'Lasting for a very short time',
+          'Heavy and massive',
+          'Extremely loud',
+          'Old and ancient'
+        ],
+        answer: 0,
+        explanation: 'The clue "vanishing within minutes" shows that ephemeral means fleeting or short-lived.'
+      }
+    ]
+  }
+};
+
+let currentLearnTopic = 'science';
+let currentLearnIndex = 0;
+let currentLearnScore = 0;
+
+function renderLearnQuestion() {
+  const topicData = LEARN_TOPICS[currentLearnTopic];
+  if (!topicData) return;
+  const total = topicData.questions.length;
+  const qData = topicData.questions[currentLearnIndex];
+
+  // Update badges & question
+  const topicBadge = $('#dashLearnTopicBadge');
+  if (topicBadge) topicBadge.textContent = `Topic: ${topicData.title} · ${topicData.badge}`;
+  
+  const progBadge = $('#dashLearnProgress');
+  if (progBadge) progBadge.textContent = `Question ${currentLearnIndex + 1} of ${total}`;
+
+  const xpBadge = $('#dashLearnXp');
+  if (xpBadge) xpBadge.textContent = `+${currentLearnScore} XP`;
+
+  const qText = $('#dashLearnQuestion');
+  if (qText) qText.textContent = qData.q;
+
+  // Move mini track car
+  const car = $('#dashLearnCar');
+  const track = $('#dashLearnTrack');
+  if (car && track) {
+    const trackWidth = track.clientWidth || 320;
+    const progressPct = currentLearnIndex / total;
+    const leftPx = Math.max(8, Math.min(trackWidth - 48, 8 + progressPct * (trackWidth - 56)));
+    car.style.left = `${leftPx}px`;
+  }
+
+  // Clear feedback & hide next btn
+  const verdictEl = $('#dashLearnVerdict');
+  if (verdictEl) { verdictEl.textContent = ''; verdictEl.className = 'verdict'; }
+  const explEl = $('#dashLearnExplanation');
+  if (explEl) explEl.textContent = '';
+  const nextBtn = $('#dashLearnNextBtn');
+  if (nextBtn) nextBtn.classList.add('hidden');
+  const hintEl = $('#dashLearnHint');
+  if (hintEl) hintEl.textContent = 'Select an answer to see instant feedback and step-by-step reasoning.';
+
+  // Populate options
+  const list = $('#dashLearnOptions');
+  if (!list) return;
+  list.innerHTML = '';
+
+  const keys = ['A', 'B', 'C', 'D'];
+  qData.options.forEach((optText, optIdx) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn option frame';
+    btn.innerHTML = `<span class="key">${keys[optIdx]}</span><span>${optText}</span>`;
+
+    btn.addEventListener('click', () => {
+      // Disable all options
+      const allBtns = list.querySelectorAll('button');
+      allBtns.forEach(b => b.disabled = true);
+
+      const isCorrect = optIdx === qData.answer;
+      if (isCorrect) {
+        btn.classList.add('correct');
+        if (verdictEl) { verdictEl.textContent = '✓ Correct! +50 XP'; verdictEl.className = 'verdict good'; }
+        currentLearnScore += 50;
+        if (xpBadge) xpBadge.textContent = `+${currentLearnScore} XP`;
+        // Move car towards next marker
+        if (car && track) {
+          const trackWidth = track.clientWidth || 320;
+          const nextPct = (currentLearnIndex + 1) / total;
+          const leftPx = Math.max(8, Math.min(trackWidth - 48, 8 + nextPct * (trackWidth - 56)));
+          car.style.left = `${leftPx}px`;
+        }
+      } else {
+        btn.classList.add('wrong');
+        // Highlight correct option
+        if (allBtns[qData.answer]) allBtns[qData.answer].classList.add('correct');
+        if (verdictEl) { verdictEl.textContent = '✗ Not quite!'; verdictEl.className = 'verdict bad'; }
+      }
+
+      if (explEl) explEl.textContent = qData.explanation;
+      if (hintEl) hintEl.textContent = 'Review explanation above and proceed.';
+
+      if (nextBtn) {
+        nextBtn.classList.remove('hidden');
+        nextBtn.textContent = currentLearnIndex + 1 < total ? 'Next Question →' : 'Complete Topic 🏆';
+      }
+    });
+
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+}
+
+function handleLearnNext() {
+  const topicData = LEARN_TOPICS[currentLearnTopic];
+  if (!topicData) return;
+  const total = topicData.questions.length;
+
+  if (currentLearnIndex + 1 < total) {
+    currentLearnIndex += 1;
+    renderLearnQuestion();
+  } else {
+    // Show Topic Completion Card
+    const container = $('#learnPracticeContainer');
+    if (!container) return;
+    container.innerHTML = `
+      <div style="text-align:center;padding:24px 12px;">
+        <div style="font-size:3.5rem;margin-bottom:8px;">🏆</div>
+        <h3 style="font-size:1.6rem;color:var(--ink);margin:0 0 6px;">${topicData.title} Completed!</h3>
+        <p style="color:var(--ink-soft);font-size:1.05rem;max-width:54ch;margin:0 auto 16px;">
+          Great warm-up! You earned <b>+${currentLearnScore} Practice XP</b> reviewing key concepts.
+        </p>
+        <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:20px;">
+          <button class="btn go" id="restartTopicBtn" type="button">Practice Again ↺</button>
+          <button class="btn plain" data-route="play" type="button">Quiz Me on My Notes 📝</button>
+          <button class="btn plain" data-route="game" type="button">Play Road Rush 🏎️</button>
+        </div>
+      </div>
+    `;
+
+    $('#restartTopicBtn')?.addEventListener('click', () => {
+      // Re-initialize container
+      location.reload();
+    });
+
+    // Rebind route buttons
+    container.querySelectorAll('[data-route]').forEach(el => el.addEventListener('click', e => {
+      e.preventDefault();
+      const route = el.dataset.route;
+      if (location.hash !== '#' + route) history.pushState(null, '', '#' + route);
+      showPage(route);
+    }));
+  }
+}
+
+function setLearnTopic(topicName) {
+  if (!LEARN_TOPICS[topicName]) return;
+  currentLearnTopic = topicName;
+  currentLearnIndex = 0;
+  currentLearnScore = 0;
+
+  // Update tabs
+  $$('#learnTopicTabs .learn-topic-tab').forEach(tab => {
+    const isThis = tab.dataset.topic === topicName;
+    tab.classList.toggle('active', isThis);
+    tab.classList.toggle('plain', !isThis);
+  });
+
+  renderLearnQuestion();
+}
+
+// Wire up topic tabs
+$$('#learnTopicTabs .learn-topic-tab').forEach(tab => {
+  tab.addEventListener('click', () => setLearnTopic(tab.dataset.topic));
+});
+
+$('#dashLearnNextBtn')?.addEventListener('click', handleLearnNext);
+
+// Initialize on page load
+renderLearnQuestion();
+
+// Module details interactions on Lessons page
+let selectedModuleTopic = 'science';
 $$('[data-module]').forEach(b => b.addEventListener('click', () => {
-  const m = MODULES[b.dataset.module];
+  selectedModuleTopic = b.dataset.module;
+  const m = MODULES[selectedModuleTopic];
   $('#moduleTitle').textContent = m.title; $('#moduleDescription').textContent = m.description;
   const ol = $('#moduleList'); ol.innerHTML = '';
   m.items.forEach(t => { const li = document.createElement('li'); li.textContent = t; ol.append(li); });
   $('#moduleDetail').classList.remove('hidden');
   $('#moduleDetail').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
 }));
+
+$('#startInteractivePracticeBtn')?.addEventListener('click', () => {
+  showPage('home');
+  location.hash = '#home';
+  setLearnTopic(selectedModuleTopic);
+  setTimeout(() => {
+    $('#dashLearnSection')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+  }, 100);
+});
 
 /* ---------- Leaderboard ---------- */
 const SAMPLE_PLAYERS = [

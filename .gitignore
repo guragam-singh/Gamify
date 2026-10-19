@@ -1,8 +1,12 @@
-# Secrets — these files contain plaintext API keys
+# Secrets - these files contain plaintext API keys
 config.local.json
 opencode.jsonc
+.env
+.env.*
+*.env
+!.env.example
 
-# Unity generated / machine-local (never commit — Library alone is hundreds of MB)
+# Unity generated / machine-local (never commit - Library alone is hundreds of MB)
 [Ll]ibrary/
 [Tt]emp/
 [Ll]ogs/
@@ -12,6 +16,8 @@ opencode.jsonc
 [Uu]ser[Ss]ettings/
 [Mm]emoryCaptures/
 [Rr]ecordings/
+Assets/_Recovery/
+Assets/_Recovery.meta
 
 # Generated IDE / solution files
 *.csproj
@@ -22,9 +28,25 @@ opencode.jsonc
 .vscode/
 .idea/
 
+# Python / backend artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+.venv*/
+venv/
+tesseract_bin/
+
+# Backups and temporary files
+*.bak
+*.original.*
+*_backup/
+
 # OS cruft
 Thumbs.db
 desktop.ini
 .DS_Store
- 
+__MACOSX/
+
 !GAMIFY_final_complete_website/game/Build/

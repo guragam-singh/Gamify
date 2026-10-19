@@ -1,0 +1,9 @@
+{
+  "name": "gamify",
+  "version": "1.0.0",
+  "description": "GAMIFY - turn study notes into an interactive racing game",
+  "scripts": {
+    "dev": "powershell -Command \"Start-Process 'http://localhost:5050'; Set-Location 'ai-quiz-backend'; .\\.venv_win\\Scripts\\python.exe app.py\"",
+    "start": "powershell -Command \"Start-Process 'http://localhost:5050'; Set-Location 'ai-quiz-backend'; .\\.venv_win\\Scripts\\python.exe app.py\""
+  }
+}
